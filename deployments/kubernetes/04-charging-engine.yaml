@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: charging-engine
+  namespace: taas-platform
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: charging-engine
+  template:
+    metadata:
+      labels:
+        app: charging-engine
+    spec:
+      containers:
+      - name: charging-engine
+        image: taas-charging-engine:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+        env:
+        - name: REDIS_URI
+          value: "redis://redis:6379"
+        - name: SERVER_PORT
+          value: "8080"
+        - name: RUST_LOG
+          value: "info"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: charging-engine
+  namespace: taas-platform
+spec:
+  selector:
+    app: charging-engine
+  ports:
+  - port: 8080
+    targetPort: 8080
+  type: ClusterIP

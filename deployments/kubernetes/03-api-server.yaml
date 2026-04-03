@@ -1,0 +1,77 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-server-config
+  namespace: taas-platform
+data:
+  API_PORT: "8000"
+  GIN_MODE: "release"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-server
+  namespace: taas-platform
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: api-server
+  template:
+    metadata:
+      labels:
+        app: api-server
+    spec:
+      containers:
+      - name: api-server
+        image: taas-api-server:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8000
+        env:
+        - name: MONGODB_URI
+          value: "mongodb://admin:changeme-in-production@mongodb:27017/free5gc"
+        - name: REDIS_URI
+          value: "redis://redis:6379"
+        - name: API_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: api-server-config
+              key: API_PORT
+        - name: GIN_MODE
+          valueFrom:
+            configMapKeyRef:
+              name: api-server-config
+              key: GIN_MODE
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-server
+  namespace: taas-platform
+spec:
+  selector:
+    app: api-server
+  ports:
+  - port: 8000
+    targetPort: 8000
+  type: LoadBalancer

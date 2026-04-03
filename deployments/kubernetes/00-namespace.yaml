@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: taas-platform
+  labels:
+    name: taas-platform
+    environment: production
