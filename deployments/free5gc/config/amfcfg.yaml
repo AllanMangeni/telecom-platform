@@ -1,0 +1,54 @@
+info:
+  version: 1.0.0
+  description: AMF initial local configuration
+
+configuration:
+  amfName: AMF
+  ngapIpList:
+    - amf
+  sbi:
+    scheme: http
+    registerIPv4: amf
+    bindIPv4: 0.0.0.0
+    port: 8000
+    name: amf
+  nrf:
+    scheme: http
+    IPv4Addr: nrf
+    port: 8000
+  serviceList:
+    - serviceName: namf-comm
+      version: 2.0.1
+      scheme: http
+      bindIPv4: 0.0.0.0
+      port: 8000
+    - serviceName: namf-evts
+      version: 2.0.0
+      scheme: http
+      bindIPv4: 0.0.0.0
+      port: 8000
+  locality: area01
+  plmn:
+    mcc: "208"
+    mnc: "93"
+  supportTaiList:
+    - mcc: "208"
+      mnc: "93"
+      tac: "000001"
+  security:
+    integrityOrder:
+      - NIA2
+      - NIA1
+      - NIA0
+    cipheringOrder:
+      - NEA0
+      - NEA1
+      - NEA2
+  networkName:
+    full: free5GC
+    short: free5gc
+  amf:
+    sbi:
+      port: 8000
+    ngap:
+      port: 38412
