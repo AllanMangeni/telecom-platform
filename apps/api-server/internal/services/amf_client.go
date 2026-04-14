@@ -87,7 +87,7 @@ func (a *AMFClient) TerminateSession(ctx context.Context, imsi models.IMSI, reas
 
 // NotifySubscriberUpdate notifies AMF of subscriber status changes
 func (a *AMFClient) NotifySubscriberUpdate(ctx context.Context, imsi models.IMSI, status models.SubscriberStatus) error {
-	req := map[string]interface{}{
+	req := map[string]any{
 		"imsi":      imsi,
 		"status":    status,
 		"timestamp": time.Now(),

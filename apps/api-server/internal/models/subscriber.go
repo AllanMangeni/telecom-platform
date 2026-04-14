@@ -34,7 +34,7 @@ type Subscriber struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `json:"-" gorm:"index"`
 
-	Plan         ServicePlan   `json:"plan,omitempty" gorm:"foreignKey:PlanID"`
+	Plan         ServicePlan   `json:"plan" gorm:"foreignKey:PlanID"`
 	Sessions     []Session     `json:"sessions,omitempty" gorm:"foreignKey:SubscriberID"`
 	UsageRecords []UsageRecord `json:"usage_records,omitempty" gorm:"foreignKey:SubscriberID"`
 }
