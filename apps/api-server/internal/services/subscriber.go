@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/nutcas3/telecom-platform/apps/api-server/internal/config"
@@ -259,11 +260,25 @@ func (s *SubscriberService) generateAuthKeys() (string, string, error) {
 
 // getOperatorVariant returns the operator variant (OP) from configuration
 func (s *SubscriberService) getOperatorVariant() []byte {
-	// In production, this should come from secure operator configuration
-	// For now, using a hardcoded OP for demonstration
+	// Get operator variant from environment variable or secure configuration
 	// This should be the same across all subscribers for the same operator
+	opStr := os.Getenv("OPERATOR_VARIANT")
+	if opStr == "" {
+		// Fallback to default for development
+		opStr = "TelecomOP1234567" // 16-byte operator variant
+	}
+
+	// Ensure exactly 16 bytes for AES-128
 	op := make([]byte, 16)
-	copy(op, []byte("TelecomOP1234567")) // 16-byte operator variant
+	copy(op, []byte(opStr))
+
+	// If shorter than 16 bytes, pad with zeros
+	if len(opStr) < 16 {
+		for i := len(opStr); i < 16; i++ {
+			op[i] = 0
+		}
+	}
+
 	return op
 }
 
