@@ -1,0 +1,52 @@
+apiVersion: v2
+name: telecom-platform
+description: A Helm chart for Telecom Platform - Complete telecommunications management solution
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+home: https://github.com/nutcas3/telecom-platform
+sources:
+  - https://github.com/nutcas3/telecom-platform
+maintainers:
+  - name: Telecom Platform Team
+    email: team@telecom-platform.com
+keywords:
+  - telecom
+  - platform
+  - kubernetes
+  - monitoring
+  - billing
+  - charging
+  - subscriber-management
+annotations:
+  category: Infrastructure
+  licenses: MIT
+dependencies:
+  - name: postgresql
+    version: 12.1.9
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled
+  - name: redis
+    version: 17.3.7
+    repository: https://charts.bitnami.com/bitnami
+    condition: redis.enabled
+  - name: prometheus
+    version: 23.1.0
+    repository: https://prometheus-community.github.io/helm-charts
+    condition: prometheus.enabled
+  - name: grafana
+    version: 6.58.9
+    repository: https://grafana.github.io/helm-charts
+    condition: grafana.enabled
+  - name: elasticsearch
+    version: 19.5.0
+    repository: https://helm.elastic.co
+    condition: elasticsearch.enabled
+  - name: kibana
+    version: 10.2.0
+    repository: https://helm.elastic.co
+    condition: kibana.enabled
+  - name: logstash
+    version: 8.5.1
+    repository: https://helm.elastic.co
+    condition: logstash.enabled

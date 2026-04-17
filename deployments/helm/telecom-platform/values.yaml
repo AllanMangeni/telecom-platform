@@ -1,0 +1,585 @@
+# Default values for telecom-platform.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Global configuration
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+  storageClass: ""
+  # Environment: dev, staging, prod
+  environment: "dev"
+  
+# Platform configuration
+platform:
+  # Domain configuration
+  domain: "telecom.local"
+  tls:
+    enabled: false
+    secretName: "telecom-tls"
+    certManager:
+      enabled: false
+      issuerName: "letsencrypt-prod"
+  
+  # API configuration
+  api:
+    replicas: 3
+    image:
+      repository: telecom-platform/api-server
+      tag: "1.0.0"
+      pullPolicy: IfNotPresent
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    autoscaling:
+      enabled: true
+      minReplicas: 3
+      maxReplicas: 10
+      targetCPUUtilizationPercentage: 70
+      targetMemoryUtilizationPercentage: 80
+    service:
+      type: ClusterIP
+      port: 8000
+    ingress:
+      enabled: true
+      className: "nginx"
+      annotations: {}
+      hosts:
+        - host: api.telecom.local
+          paths:
+            - path: /
+              pathType: Prefix
+      tls: []
+  
+  # Charging Engine configuration
+  charging:
+    replicas: 2
+    image:
+      repository: telecom-platform/charging-engine
+      tag: "1.0.0"
+      pullPolicy: IfNotPresent
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 8
+      targetCPUUtilizationPercentage: 75
+    service:
+      type: ClusterIP
+      port: 8080
+    config:
+      databaseUrl: "postgresql://postgres:password@postgres:5432/telecom"
+      redisUrl: "redis://redis:6379"
+  
+  # Packet Gateway configuration
+  gateway:
+    replicas: 2
+    image:
+      repository: telecom-platform/packet-gateway
+      tag: "1.0.0"
+      pullPolicy: IfNotPresent
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 6
+      targetCPUUtilizationPercentage: 80
+    service:
+      type: ClusterIP
+      port: 9090
+    privileged: true
+    hostNetwork: false
+  
+  # Web Dashboard configuration
+  dashboard:
+    replicas: 2
+    image:
+      repository: telecom-platform/web-dashboard
+      tag: "1.0.0"
+      pullPolicy: IfNotPresent
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 4
+      targetCPUUtilizationPercentage: 70
+    service:
+      type: ClusterIP
+      port: 3000
+    ingress:
+      enabled: true
+      className: "nginx"
+      annotations: {}
+      hosts:
+        - host: dashboard.telecom.local
+          paths:
+            - path: /
+              pathType: Prefix
+      tls: []
+
+# PostgreSQL configuration
+postgresql:
+  enabled: true
+  auth:
+    postgresPassword: "telecom123"
+    database: "telecom"
+  primary:
+    persistence:
+      enabled: true
+      size: 20Gi
+      storageClass: ""
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 1Gi
+    service:
+      ports:
+        postgresql: 5432
+
+# Redis configuration
+redis:
+  enabled: true
+  auth:
+    enabled: false
+    password: ""
+  master:
+    persistence:
+      enabled: true
+      size: 8Gi
+      storageClass: ""
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+    service:
+      ports:
+        redis: 6379
+
+# Prometheus configuration
+prometheus:
+  enabled: true
+  server:
+    replicaCount: 1
+    resources:
+      requests:
+        cpu: 100m
+        memory: 512Mi
+      limits:
+        cpu: 500m
+        memory: 2Gi
+    persistentVolume:
+      enabled: true
+      size: 20Gi
+    service:
+      type: ClusterIP
+      port: 9090
+    ingress:
+      enabled: true
+      ingressClassName: "nginx"
+      hosts:
+        - prometheus.telecom.local
+      paths:
+        - path: /
+          pathType: Prefix
+  alertmanager:
+    enabled: true
+    replicaCount: 1
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+    service:
+      type: ClusterIP
+      port: 9093
+    ingress:
+      enabled: true
+      ingressClassName: "nginx"
+      hosts:
+        - alertmanager.telecom.local
+      paths:
+        - path: /
+          pathType: Prefix
+
+# Grafana configuration
+grafana:
+  enabled: true
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+  persistence:
+    enabled: true
+    size: 10Gi
+  service:
+    type: ClusterIP
+    port: 3000
+  ingress:
+    enabled: true
+    ingressClassName: "nginx"
+    hosts:
+      - grafana.telecom.local
+    paths:
+      - path: /
+        pathType: Prefix
+  adminPassword: "admin123"
+  sidecar:
+    datasources:
+      enabled: true
+    dashboards:
+      enabled: true
+
+# ELK Stack configuration
+elasticsearch:
+  enabled: true
+  master:
+    replicaCount: 1
+    resources:
+      requests:
+        cpu: 100m
+        memory: 1Gi
+      limits:
+        cpu: 500m
+        memory: 2Gi
+    persistence:
+      enabled: true
+      size: 20Gi
+  data:
+    replicaCount: 2
+    resources:
+      requests:
+        cpu: 100m
+        memory: 1Gi
+      limits:
+        cpu: 500m
+        memory: 2Gi
+    persistence:
+      enabled: true
+      size: 30Gi
+
+kibana:
+  enabled: true
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 256Mi
+    limits:
+      cpu: 200m
+      memory: 512Mi
+  service:
+    type: ClusterIP
+    port: 5601
+  ingress:
+    enabled: true
+    ingressClassName: "nginx"
+    hosts:
+      - kibana.telecom.local
+    paths:
+      - path: /
+        pathType: Prefix
+
+logstash:
+  enabled: true
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  service:
+    type: ClusterIP
+    ports:
+      - port: 5044
+        name: beats
+      - port: 9600
+        name: http
+
+# Monitoring configuration
+monitoring:
+  serviceMonitor:
+    enabled: true
+    namespace: telecom-platform
+    labels:
+      release: prometheus
+    interval: 30s
+    scrapeTimeout: 10s
+  
+  prometheusRule:
+    enabled: true
+    namespace: telecom-platform
+    labels:
+      release: prometheus
+    groups:
+      - name: telecom-platform
+        rules:
+          - alert: APIHighErrorRate
+            expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.1
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: "API error rate is high"
+              description: "API error rate is {{ $value }} errors per second"
+          
+          - alert: HighMemoryUsage
+            expr: container_memory_usage_bytes / container_spec_memory_limit_bytes > 0.9
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High memory usage"
+              description: "Memory usage is above 90%"
+          
+          - alert: HighCPUUsage
+            expr: rate(container_cpu_usage_seconds_total[5m]) > 0.8
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High CPU usage"
+              description: "CPU usage is above 80%"
+
+# Service Mesh (Istio) configuration
+istio:
+  enabled: false
+  namespace: "istio-system"
+  injectionPolicy: enabled
+  gateway:
+    enabled: true
+    selectors:
+      - istio: ingressgateway
+  virtualService:
+    enabled: true
+    hosts:
+      - api.telecom.local
+      - dashboard.telecom.local
+      - grafana.telecom.local
+      - prometheus.telecom.local
+      - kibana.telecom.local
+  destinationRule:
+    enabled: true
+    trafficPolicy:
+      loadBalancer:
+        simple: ROUND_ROBIN
+      connectionPool:
+        tcp:
+          maxConnections: 100
+        http:
+          http1MaxPendingRequests: 50
+          maxRequestsPerConnection: 10
+
+# Backup configuration
+backup:
+  enabled: true
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  retention: "30d"
+  storage:
+    type: "s3"
+    s3:
+      bucket: "telecom-platform-backups"
+      region: "us-east-1"
+      endpoint: ""
+      accessKey: ""
+      secretKey: ""
+  databases:
+    postgresql:
+      enabled: true
+      host: "postgres"
+      port: 5432
+      database: "telecom"
+      username: "postgres"
+      password: "telecom123"
+  
+  # Velero configuration for Kubernetes backups
+  velero:
+    enabled: true
+    namespace: "velero"
+    version: "v1.9.0"
+    serviceAccount:
+      server:
+        create: true
+        name: "velero"
+    configuration:
+      provider: "aws"
+      backupStorageLocation:
+        name: "default"
+        bucket: "velero-backups"
+        config:
+          region: "us-east-1"
+      volumeSnapshotLocation:
+        name: "default"
+        config:
+          region: "us-east-1"
+
+# Secrets management
+secrets:
+  vault:
+    enabled: false
+    namespace: "vault"
+    version: "1.14.0"
+    ha:
+      enabled: true
+      replicas: 3
+    ui:
+      enabled: true
+      serviceType: "ClusterIP"
+    injector:
+      enabled: true
+    auth:
+      enabled: true
+      method: "kubernetes"
+      kubernetes:
+        host: "https://kubernetes.default.svc"
+        role: "telecom-platform"
+  
+  certManager:
+    enabled: false
+    namespace: "cert-manager"
+    version: "v1.13.0"
+    installCRDs: true
+    webhook:
+      timeout: "30s"
+
+# GDPR compliance configuration
+gdpr:
+  enabled: true
+  dataRetention:
+    logs: "90d"
+    metrics: "365d"
+    userProfiles: "2555d"  # 7 years
+    billing: "3650d"       # 10 years
+  
+  privacy:
+    anonymization:
+      enabled: true
+      fields:
+        - phone
+        - email
+        - address
+    encryption:
+      enabled: true
+      algorithm: "AES-256"
+      keyRotation: "90d"
+  
+  audit:
+    enabled: true
+    retention: "2555d"
+    events:
+      - user.login
+      - user.logout
+      - data.access
+      - data.modification
+      - admin.actions
+
+# Auto-scaling configuration
+autoscaling:
+  enabled: true
+  clusterAutoscaler:
+    enabled: true
+    version: "1.28.0"
+    scaleDownDelayAfterAdd: "10m"
+    scaleDownUnneededTime: "10m"
+    maxNodesTotal: 100
+    resourceLimits:
+      maxCPU: 100
+      maxMemory: 500Gi
+  
+  metricsServer:
+    enabled: true
+    version: "v0.6.4"
+    resources:
+      requests:
+        cpu: 50m
+        memory: 100Mi
+      limits:
+        cpu: 100m
+        memory: 200Mi
+
+# Multi-environment configuration
+environments:
+  dev:
+    replicas:
+      api: 1
+      charging: 1
+      gateway: 1
+      dashboard: 1
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+    domain: "dev.telecom.local"
+  
+  staging:
+    replicas:
+      api: 2
+      charging: 2
+      gateway: 2
+      dashboard: 2
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    domain: "staging.telecom.local"
+  
+  prod:
+    replicas:
+      api: 3
+      charging: 2
+      gateway: 2
+      dashboard: 2
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+    domain: "telecom.platform"
+    tls:
+      enabled: true
+      certManager:
+        enabled: true
+        issuerName: "letsencrypt-prod"
