@@ -10,40 +10,23 @@ import (
 // Color palette using lipgloss
 var (
 	// Primary colors
-	primaryColor = lipgloss.Color("#4ECDC4")   // Teal
-	accentColor  = lipgloss.Color("#FF6B6B")    // Red
-	mutedColor   = lipgloss.Color("#999999")    // Gray
-	whiteColor   = lipgloss.Color("#FFFFFF")    // White
-	blackColor   = lipgloss.Color("#000000")    // Black
-	
+	primaryColor = lipgloss.Color("#4ECDC4") // Teal
+	accentColor  = lipgloss.Color("#FF6B6B") // Red
+	mutedColor   = lipgloss.Color("#999999") // Gray
+	whiteColor   = lipgloss.Color("#FFFFFF") // White
+
 	// Semantic colors
-	successColor = lipgloss.Color("#4ECDC4")    // Same as primary
-	warningColor = lipgloss.Color("#FFA726")    // Orange
-	errorColor   = lipgloss.Color("#FF6B6B")    // Same as accent
-	infoColor    = lipgloss.Color("#42A5F5")    // Blue
-	
+	successColor = lipgloss.Color("#4ECDC4") // Same as primary
+	warningColor = lipgloss.Color("#FFA726") // Orange
+	errorColor   = lipgloss.Color("#FF6B6B") // Same as accent
+	infoColor    = lipgloss.Color("#42A5F5") // Blue
+
 	// Additional colors
-	yellowColor  = lipgloss.Color("#FFD93D")    // Yellow
-	greenColor   = lipgloss.Color("#6BCF7F")    // Green
-	blueColor    = lipgloss.Color("#4A90E2")    // Blue
-	purpleColor  = lipgloss.Color("#9B59B6")    // Purple
-	cyanColor    = lipgloss.Color("#00BCD4")    // Cyan
+	yellowColor = lipgloss.Color("#FFD93D") // Yellow
 )
 
 // Base styles
 var (
-	baseStyle = lipgloss.NewStyle().
-			BorderStyle(lipgloss.RoundedBorder())
-
-	focusedStyle = baseStyle.
-			BorderForeground(accentColor)
-
-	blurredStyle = baseStyle.
-			BorderForeground(mutedColor)
-
-	helpStyle = lipgloss.NewStyle().
-			Foreground(mutedColor)
-
 	headerStyle = lipgloss.NewStyle().
 			Bold(true).
 			Foreground(whiteColor).
@@ -63,16 +46,16 @@ var (
 
 	// Status styles
 	statusSuccessStyle = lipgloss.NewStyle().
-			Foreground(successColor).
-			Bold(true)
+				Foreground(successColor).
+				Bold(true)
 
 	statusErrorStyle = lipgloss.NewStyle().
-			Foreground(errorColor).
-			Bold(true)
+				Foreground(errorColor).
+				Bold(true)
 
 	statusWarningStyle = lipgloss.NewStyle().
-			Foreground(warningColor).
-			Bold(true)
+				Foreground(warningColor).
+				Bold(true)
 
 	statusInfoStyle = lipgloss.NewStyle().
 			Foreground(infoColor).
@@ -80,50 +63,44 @@ var (
 
 	// Service status styles
 	statusRunningStyle = lipgloss.NewStyle().
-			Foreground(successColor).
-			Bold(true)
+				Foreground(successColor).
+				Bold(true)
 
 	statusStoppedStyle = lipgloss.NewStyle().
-			Foreground(errorColor).
-			Bold(true)
+				Foreground(errorColor).
+				Bold(true)
 
 	statusPendingStyle = lipgloss.NewStyle().
-			Foreground(warningColor).
-			Bold(true)
+				Foreground(warningColor).
+				Bold(true)
 
 	statusUnknownStyle = lipgloss.NewStyle().
-			Foreground(mutedColor).
-			Italic(true)
+				Foreground(mutedColor).
+				Italic(true)
 
 	// Subscriber status styles
 	statusActiveStyle = lipgloss.NewStyle().
-			Foreground(successColor).
-			Bold(true)
+				Foreground(successColor).
+				Bold(true)
 
 	statusInactiveStyle = lipgloss.NewStyle().
-			Foreground(errorColor).
-			Bold(true)
+				Foreground(errorColor).
+				Bold(true)
 
 	statusSuspendedStyle = lipgloss.NewStyle().
-			Foreground(warningColor).
-			Bold(true)
+				Foreground(warningColor).
+				Bold(true)
 
 	// Metric styles
 	metricGoodStyle = lipgloss.NewStyle().
 			Foreground(successColor)
 
 	metricWarningStyle = lipgloss.NewStyle().
-			Foreground(warningColor)
+				Foreground(warningColor)
 
 	metricCriticalStyle = lipgloss.NewStyle().
-			Foreground(errorColor).
-			Bold(true)
-
-	// Text styles
-	boldStyle = lipgloss.NewStyle().Bold(true)
-	italicStyle = lipgloss.NewStyle().Italic(true)
-	underlineStyle = lipgloss.NewStyle().Underline(true)
-	dimStyle = lipgloss.NewStyle().Faint(true)
+				Foreground(errorColor).
+				Bold(true)
 
 	// Command styles
 	commandStyle = lipgloss.NewStyle().
@@ -139,25 +116,25 @@ var (
 			Bold(true)
 
 	descriptionStyle = lipgloss.NewStyle().
-			Foreground(mutedColor).
-			Italic(true)
+				Foreground(mutedColor).
+				Italic(true)
 
 	// Table styles
 	tableHeaderStyle = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(primaryColor).
-			Background(lipgloss.Color("#2D2D2D")).
-			Padding(0, 1)
+				Bold(true).
+				Foreground(primaryColor).
+				Background(lipgloss.Color("#2D2D2D")).
+				Padding(0, 1)
 
 	tableBorderStyle = lipgloss.NewStyle().
-			Foreground(mutedColor).
-			Faint(true)
+				Foreground(mutedColor).
+				Faint(true)
 
 	tableRowEvenStyle = lipgloss.NewStyle().
-			Foreground(whiteColor)
+				Foreground(whiteColor)
 
 	tableRowOddStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#F0F0F0"))
+				Foreground(lipgloss.Color("#F0F0F0"))
 
 	// Panel styles
 	panelStyle = lipgloss.NewStyle().
@@ -166,27 +143,11 @@ var (
 			Padding(1)
 
 	panelFocusedStyle = lipgloss.NewStyle().
-			BorderStyle(lipgloss.RoundedBorder()).
-			BorderForeground(accentColor).
-			Padding(1)
+				BorderStyle(lipgloss.RoundedBorder()).
+				BorderForeground(accentColor).
+				Padding(1)
 
-	// Error and success styles
-	errorStyle = lipgloss.NewStyle().
-			Foreground(errorColor).
-			Bold(true)
-
-	successStyle = lipgloss.NewStyle().
-			Foreground(successColor).
-			Bold(true)
-
-	warningStyle = lipgloss.NewStyle().
-			Foreground(warningColor).
-			Bold(true)
-
-	infoStyle = lipgloss.NewStyle().
-			Foreground(infoColor).
-			Bold(true)
-
+	// Debug and muted styles
 	debugStyle = lipgloss.NewStyle().
 			Foreground(mutedColor).
 			Italic(true)
@@ -194,26 +155,6 @@ var (
 	mutedStyle = lipgloss.NewStyle().
 			Foreground(mutedColor).
 			Faint(true)
-
-	// Icon styles
-	iconStyle = lipgloss.NewStyle().
-			Bold(true)
-
-	iconSuccessStyle = lipgloss.NewStyle().
-			Foreground(successColor).
-			Bold(true)
-
-	iconErrorStyle = lipgloss.NewStyle().
-			Foreground(errorColor).
-			Bold(true)
-
-	iconWarningStyle = lipgloss.NewStyle().
-			Foreground(warningColor).
-			Bold(true)
-
-	iconInfoStyle = lipgloss.NewStyle().
-			Foreground(infoColor).
-			Bold(true)
 )
 
 // Style represents a lipgloss style
@@ -223,33 +164,33 @@ type Style struct {
 
 // Predefined styles using lipgloss
 var (
-	StyleSuccess     = Style{Style: statusSuccessStyle}
-	StyleError       = Style{Style: statusErrorStyle}
-	StyleWarning     = Style{Style: statusWarningStyle}
-	StyleInfo        = Style{Style: statusInfoStyle}
-	StyleDebug       = Style{Style: debugStyle}
-	StyleMuted       = Style{Style: mutedStyle}
+	StyleSuccess = Style{Style: statusSuccessStyle}
+	StyleError   = Style{Style: statusErrorStyle}
+	StyleWarning = Style{Style: statusWarningStyle}
+	StyleInfo    = Style{Style: statusInfoStyle}
+	StyleDebug   = Style{Style: debugStyle}
+	StyleMuted   = Style{Style: mutedStyle}
 
-	StyleRunning     = Style{Style: statusRunningStyle}
-	StyleStopped     = Style{Style: statusStoppedStyle}
-	StylePending     = Style{Style: statusPendingStyle}
-	StyleUnknown     = Style{Style: statusUnknownStyle}
+	StyleRunning = Style{Style: statusRunningStyle}
+	StyleStopped = Style{Style: statusStoppedStyle}
+	StylePending = Style{Style: statusPendingStyle}
+	StyleUnknown = Style{Style: statusUnknownStyle}
 
-	StyleActive      = Style{Style: statusActiveStyle}
-	StyleInactive    = Style{Style: statusInactiveStyle}
-	StyleSuspended   = Style{Style: statusSuspendedStyle}
+	StyleActive    = Style{Style: statusActiveStyle}
+	StyleInactive  = Style{Style: statusInactiveStyle}
+	StyleSuspended = Style{Style: statusSuspendedStyle}
 
-	StyleHeader      = Style{Style: headerStyle}
-	StyleSubHeader   = Style{Style: subHeaderStyle}
-	StyleTitle       = Style{Style: titleStyle}
+	StyleHeader    = Style{Style: headerStyle}
+	StyleSubHeader = Style{Style: subHeaderStyle}
+	StyleTitle     = Style{Style: titleStyle}
 
-	StyleHeaderRow   = Style{Style: tableHeaderStyle}
-	StyleRowEven     = Style{Style: tableRowEvenStyle}
-	StyleRowOdd      = Style{Style: tableRowOddStyle}
-	StyleBorder      = Style{Style: tableBorderStyle}
+	StyleHeaderRow = Style{Style: tableHeaderStyle}
+	StyleRowEven   = Style{Style: tableRowEvenStyle}
+	StyleRowOdd    = Style{Style: tableRowOddStyle}
+	StyleBorder    = Style{Style: tableBorderStyle}
 
-	StyleMetricGood    = Style{Style: metricGoodStyle}
-	StyleMetricWarning = Style{Style: metricWarningStyle}
+	StyleMetricGood     = Style{Style: metricGoodStyle}
+	StyleMetricWarning  = Style{Style: metricWarningStyle}
 	StyleMetricCritical = Style{Style: metricCriticalStyle}
 
 	StyleCommand     = Style{Style: commandStyle}
@@ -257,7 +198,7 @@ var (
 	StyleArgument    = Style{Style: argumentStyle}
 	StyleDescription = Style{Style: descriptionStyle}
 
-	StylePanel       = Style{Style: panelStyle}
+	StylePanel        = Style{Style: panelStyle}
 	StylePanelFocused = Style{Style: panelFocusedStyle}
 )
 
@@ -369,12 +310,12 @@ func (c *Colorizer) StatusSuspended(text string) string {
 // Metric colorizations based on value
 func (c *Colorizer) Metric(value float64, thresholds ...float64) string {
 	text := fmt.Sprintf("%.1f%%", value)
-	
+
 	// Default thresholds if not provided
 	if len(thresholds) == 0 {
 		thresholds = []float64{70, 90}
 	}
-	
+
 	switch {
 	case value >= thresholds[1]:
 		return c.Colorize(text, StyleMetricCritical)
@@ -399,12 +340,12 @@ func ShouldDisableColors() bool {
 	if os.Getenv("NO_COLOR") != "" {
 		return true
 	}
-	
+
 	// Check if output is not a TTY
 	if fileInfo, _ := os.Stdout.Stat(); fileInfo != nil {
 		return (fileInfo.Mode() & 0o100) == 0 // Not a TTY
 	}
-	
+
 	return false
 }
 
