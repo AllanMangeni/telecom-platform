@@ -225,13 +225,24 @@ func (t *Table) renderBorderLine(position string) string {
 	}
 
 	var sections []string
+	var borderChar string
+
+	// Use position parameter to determine border style
+	switch position {
+	case "top", "bottom":
+		borderChar = "="
+	case "middle":
+		borderChar = "-"
+	default:
+		borderChar = "="
+	}
 
 	for _, col := range t.Columns {
 		width := col.Width + 2 // Account for padding
 		if t.Style.Padding > 0 {
 			width += t.Style.Padding * 2
 		}
-		sections = append(sections, strings.Repeat("=", width))
+		sections = append(sections, strings.Repeat(borderChar, width))
 	}
 
 	border := t.Style.BorderColor.Render("+")
@@ -259,8 +270,6 @@ func (t *Table) padText(text string, width int, alignment string) string {
 		return text + strings.Repeat(" ", padding)
 	}
 }
-
-// Convenience methods for creating common table types
 
 // NewServicesTable creates a table optimized for service listings with lipgloss styling
 func NewServicesTable(colorizer *Colorizer, iconRenderer *IconRenderer) *Table {
