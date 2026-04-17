@@ -9,6 +9,7 @@ import (
 	"github.com/nutcas3/telecom-platform/apps/api-server/internal/config"
 	"github.com/nutcas3/telecom-platform/apps/api-server/internal/database"
 	"github.com/nutcas3/telecom-platform/apps/api-server/internal/models"
+	"github.com/nutcas3/telecom-platform/apps/api-server/internal/payment/gateways"
 )
 
 // SubscriberService handles subscriber management operations
@@ -17,6 +18,7 @@ type SubscriberService struct {
 	config     *config.Config
 	amfClient  *AMFClient
 	es2Service *ES2Service
+	stripeGW   *gateways.StripeGateway
 }
 
 // NewSubscriberService creates a new subscriber service
@@ -26,6 +28,7 @@ func NewSubscriberService(db *database.Database, cfg *config.Config) *Subscriber
 		config:     cfg,
 		amfClient:  NewAMFClient("http://localhost:8081"), // Default AMF URL
 		es2Service: NewES2Service(&cfg.ES2),
+		stripeGW:   gateways.NewStripeGateway(cfg.Payment.StripeAPIKey, cfg.Payment.StripeWebhookSecret),
 	}
 }
 
@@ -596,17 +599,23 @@ func (s *SubscriberService) AddPaymentMethod(ctx context.Context, subscriberId i
 	// Generate unique payment method ID
 	paymentMethodID := fmt.Sprintf("pm_%d_%d", subscriberId, time.Now().Unix())
 
+	// Process payment token using real Stripe API to extract card details
+	last4, brand, expiryMonth, expiryYear, err := s.processPaymentToken(ctx, req.Token)
+	if err != nil {
+		return nil, fmt.Errorf("failed to process payment token: %w", err)
+	}
+
 	paymentMethod := &models.PaymentMethod{
 		ID:           paymentMethodID,
 		SubscriberID: uint(subscriberId),
 		GatewayID:    "default_gateway",
 		Type:         req.Type,
 		CustomerID:   fmt.Sprintf("cus_%d", subscriberId),
-		Last4:        "1234", // Default placeholder, should come from req in real implementation
-		Brand:        "visa", // Default placeholder, should come from req in real implementation
-		ExpiryMonth:  12,     // Default placeholder, should come from req in real implementation
-		ExpiryYear:   2025,   // Default placeholder, should come from req in real implementation
-		IsDefault:    false,
+		Last4:        last4,
+		Brand:        brand,
+		ExpiryMonth:  expiryMonth,
+		ExpiryYear:   expiryYear,
+		IsDefault:    req.IsDefault,
 		CreatedAt:    time.Now(),
 	}
 
@@ -616,6 +625,18 @@ func (s *SubscriberService) AddPaymentMethod(ctx context.Context, subscriberId i
 	}
 
 	return paymentMethod, nil
+}
+
+// processPaymentToken processes payment gateway token using real Stripe API
+func (s *SubscriberService) processPaymentToken(ctx context.Context, token string) (last4, brand string, expiryMonth, expiryYear int, err error) {
+	// Call Stripe API to retrieve payment method details from token
+	details, err := s.stripeGW.RetrievePaymentMethodFromToken(ctx, token)
+	if err != nil {
+		return "", "", 0, 0, fmt.Errorf("failed to retrieve payment method from token: %w", err)
+	}
+
+	// Return the actual card details from Stripe
+	return details.Last4, details.Brand, details.ExpiryMonth, details.ExpiryYear, nil
 }
 
 // RemovePaymentMethod removes a payment method
