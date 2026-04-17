@@ -1,0 +1,36 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ArgoCD
+metadata:
+  name: argocd
+  namespace: argocd
+spec:
+  server:
+    route:
+      enabled: true
+  controller:
+    processors: {}
+    resourceTrackingMethod: annotation
+  repo:
+    mtls: {}
+  sso:
+    provider: dex
+    dex:
+      config: |
+        connectors:
+        - type: oidc
+          id: oidc
+          name: OpenID Connect
+          config:
+            issuer: https://your-oidc-provider.com
+            clientID: argocd
+            clientSecret: $oidc.clientSecret
+            requestedScopes: ["openid", "profile", "email", "groups"]
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: argocd-secret
+  namespace: argocd
+type: Opaque
+stringData:
+  oidc.clientSecret: "your-oidc-client-secret"

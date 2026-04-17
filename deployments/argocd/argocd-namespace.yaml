@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: argocd
+  labels:
+    name: argocd
+    app.kubernetes.io/part-of: telecom-platform
+    app.kubernetes.io/component: gitops
+  annotations:
+    telecom-platform.io/managed-by: "gitops"
