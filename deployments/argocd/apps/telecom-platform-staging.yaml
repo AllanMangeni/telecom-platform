@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: telecom-platform-staging
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: telecom-platform-staging
+    app.kubernetes.io/component: platform
+    app.kubernetes.io/environment: staging
+    app.kubernetes.io/part-of: telecom-platform
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/nutcas3/telecom-platform.git
+    targetRevision: main
+    path: deployments/environments/staging
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: telecom-platform-staging
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+    - PrunePropagationPolicy=foreground
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

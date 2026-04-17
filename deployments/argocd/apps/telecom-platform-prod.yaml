@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: telecom-platform-prod
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: telecom-platform-prod
+    app.kubernetes.io/component: platform
+    app.kubernetes.io/environment: prod
+    app.kubernetes.io/part-of: telecom-platform
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/nutcas3/telecom-platform.git
+    targetRevision: main
+    path: deployments/environments/prod
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: telecom-platform-prod
+  syncPolicy:
+    automated:
+      prune: false  # Manual sync for production
+      selfHeal: false
+    syncOptions:
+    - CreateNamespace=true
+    - PrunePropagationPolicy=foreground
+    retry:
+      limit: 3
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
