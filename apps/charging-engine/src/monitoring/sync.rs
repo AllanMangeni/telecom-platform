@@ -1,5 +1,6 @@
 use tokio::time::interval;
 use tracing::{info, warn, error, debug};
+use chrono::Datelike;
 
 use crate::errors::{ChargingResult, log_error};
 use crate::monitoring::types::{SystemStats, HealthStatus};
@@ -144,7 +145,7 @@ impl crate::charging::ChargingEngine {
         let processed = self.apply_monthly_fees().await?;
         
         // Update last fee timestamp
-        let _: () = redis::AsyncCommands::set(&mut conn, last_fee_key, current_month).await.unwrap_or(());
+        let _: () = redis::AsyncCommands::set(&mut conn, last_fee_key, &current_month).await.unwrap_or(());
 
         info!("Applied monthly fees to {} accounts for {}", processed, current_month);
         Ok(())
@@ -155,9 +156,12 @@ impl crate::charging::ChargingEngine {
             .map_err(|e| crate::errors::ChargingError::RedisConnection(e.to_string()))?;
 
         let active_sessions: u64 = redis::AsyncCommands::get(&mut conn, "stats:active_sessions").await.unwrap_or(0);
-        let total_accounts: u64 = redis::AsyncCommands::keys(&mut conn, "account:*").await.unwrap_or_default().len() as u64;
-        let blocked_users: u64 = redis::AsyncCommands::keys(&mut conn, "block:*").await.unwrap_or_default().len() as u64;
-        let low_balance_alerts: u64 = redis::AsyncCommands::keys(&mut conn, "alert:low_balance:*").await.unwrap_or_default().len() as u64;
+        let account_keys: Vec<String> = redis::AsyncCommands::keys(&mut conn, "account:*").await.unwrap_or_default();
+        let total_accounts: u64 = account_keys.len() as u64;
+        let block_keys: Vec<String> = redis::AsyncCommands::keys(&mut conn, "block:*").await.unwrap_or_default();
+        let blocked_users: u64 = block_keys.len() as u64;
+        let alert_keys: Vec<String> = redis::AsyncCommands::keys(&mut conn, "alert:low_balance:*").await.unwrap_or_default();
+        let low_balance_alerts: u64 = alert_keys.len() as u64;
 
         let stats = SystemStats {
             active_sessions,
@@ -170,7 +174,7 @@ impl crate::charging::ChargingEngine {
         Ok(stats)
     }
 
-    async fn get_uptime(&self) -> ChargingResult<u64> {
+    pub async fn get_uptime(&self) -> ChargingResult<u64> {
         // Calculate actual uptime since startup
         match self.startup_time.elapsed() {
             Ok(duration) => Ok(duration.as_secs()),

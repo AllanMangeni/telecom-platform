@@ -90,5 +90,6 @@ impl ChargingEngine {
     #[allow(dead_code)]
     pub async fn list_rating_plans(&self) -> ChargingResult<Vec<RatingPlan>> {
         self.plans.list().await
+            .map_err(|e| crate::errors::ChargingError::RedisOperation(e.to_string()))
     }
 }

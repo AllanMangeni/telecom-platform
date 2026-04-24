@@ -43,3 +43,12 @@ pub struct HealthResponse {
     pub status: String,
     pub timestamp: chrono::DateTime<chrono::Utc>,
 }
+
+impl Default for HealthResponse {
+    fn default() -> Self {
+        Self {
+            status: "OK".to_string(),
+            timestamp: chrono::Utc::now(),
+        }
+    }
+}

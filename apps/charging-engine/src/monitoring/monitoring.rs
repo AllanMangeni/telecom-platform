@@ -1,8 +1,7 @@
 use tracing::{info, debug};
 use std::time::SystemTime;
 
-use crate::errors::{ChargingError, ChargingResult, ErrorContext};
-use super::types::{SystemStats, HealthStatus};
+use crate::errors::ChargingResult;
 
 #[allow(dead_code)]
 impl crate::charging::ChargingEngine {
@@ -129,16 +128,6 @@ impl crate::charging::ChargingEngine {
 
         let last_error: Option<String> = redis::AsyncCommands::get(&mut conn, "last_error").await.unwrap_or(None);
         Ok(last_error)
-    }
-
-    async fn get_uptime(&self) -> ChargingResult<u64> {
-        match self.startup_time.elapsed() {
-            Ok(duration) => Ok(duration.as_secs()),
-            Err(_) => Ok(std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_secs())
-        }
     }
 }
 

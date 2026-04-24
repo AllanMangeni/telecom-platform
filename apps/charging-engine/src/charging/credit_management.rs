@@ -2,7 +2,7 @@ use redis::AsyncCommands;
 use tracing::{info, warn, debug};
 
 use super::types::{SubscriberAccount, UsageEvent};
-use crate::errors::{ChargingError, ChargingResult, ErrorContext};
+use crate::errors::{ChargingError, ChargingResult};
 
 impl crate::charging::ChargingEngine {
     #[allow(dead_code)]

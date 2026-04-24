@@ -68,6 +68,7 @@ pub fn validate_bytes(bytes: u64) -> ChargingResult<()> {
     Ok(())
 }
 
+#[allow(dead_code)]
 pub fn validate_imsi(imsi: &str) -> ChargingResult<()> {
     if imsi.is_empty() {
         return Err(ChargingError::InvalidInput("IMSI cannot be empty".to_string()));

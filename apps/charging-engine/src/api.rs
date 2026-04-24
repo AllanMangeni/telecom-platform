@@ -1,17 +1,11 @@
 use axum::{
     extract::{Path, State},
-    response::IntoResponse,
     Json,
 };
 use tracing::info;
 
 use crate::errors::{ChargingError, ChargingResult, ErrorContext, log_error, validate_ip, validate_bytes, validate_amount, validate_session_id};
 use crate::models::*;
-
-#[derive(Clone)]
-pub struct AppState {
-    pub charging_engine: std::sync::Arc<crate::charging::ChargingEngine>,
-}
 
 /// POST /v1/credit/:ip/check
 /// Check if user has enough credit for data usage

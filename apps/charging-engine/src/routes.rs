@@ -1,11 +1,8 @@
 use axum::{
-    extract::{Path, State},
-    response::IntoResponse,
     routing::{delete, get, post, put},
-    Json, Router,
+    Router,
 };
 use tower_http::cors::{Any, CorsLayer};
-use tracing::info;
 
 use crate::api::{
     add_credit, add_rating_plan, block_user, check_credit, deduct_credit, detailed_health_check,
