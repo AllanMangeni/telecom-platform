@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"net/http"
 	"os"
@@ -10,7 +9,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-resty/resty/v2"
 	"github.com/joho/godotenv"
 	"github.com/nutcas3/telecom-platform/apps/carrier-connector/internal/config"
 	"github.com/nutcas3/telecom-platform/apps/carrier-connector/internal/es2"
@@ -141,44 +139,6 @@ func setupRoutes(router *gin.Engine, client *ES2Client) {
 	}
 }
 
-func NewES2Client(baseURL, apiKey string) *ES2Client {
-	client := resty.New().
-		SetBaseURL(baseURL).
-		SetHeader("Authorization", fmt.Sprintf("Bearer %s", apiKey)).
-		SetHeader("Content-Type", "application/json").
-		SetTimeout(10 * time.Second).
-		SetTLSClientConfig(&tls.Config{
-			MinVersion: tls.VersionTLS12,
-		})
-
-	return &ES2Client{
-		baseURL:    baseURL,
-		apiKey:     apiKey,
-		httpClient: client,
-	}
-}
-
-func (c *ES2Client) OrderProfile(order *ProfileOrder) (*ProfileResponse, error) {
-	var response ProfileResponse
-
-	// NOTE: This is a simplified example
-	// In production, implement full GSMA ES2+ protocol
-	resp, err := c.httpClient.R().
-		SetBody(order).
-		SetResult(&response).
-		Post("/gsma/rsp2/es2plus/createProfile")
-
-	if err != nil {
-		return nil, fmt.Errorf("ES2+ API call failed: %w", err)
-	}
-
-	if resp.StatusCode() != 200 {
-		return nil, fmt.Errorf("SM-DP+ returned error: %s", resp.String())
-	}
-
-	return &response, nil
-}
-
 // API Handlers
 
 func orderProfileHandler(client *es2.ES2Client) gin.HandlerFunc {
@@ -227,10 +187,17 @@ func orderProfileHandler(client *es2.ES2Client) gin.HandlerFunc {
 		}
 
 		logger.Info().
-			Str("activation_code", response.ActivationCode).
-			Str("profile_id", response.ProfileID).
+			Str("execution_status", downloadResp.ExecutionStatus).
+			Str("status_message", downloadResp.StatusMessage).
 			Str("imsi", order.IMSI).
 			Msg("Profile ordered successfully via API")
+
+		// Convert GSMA response to our API response format
+		response := &ProfileResponse{
+			ExecutionStatus: downloadResp.ExecutionStatus,
+			StatusMessage:   downloadResp.StatusMessage,
+			ProfileID:       order.ICCID, // Use ICCID as profile ID for our API
+		}
 
 		c.JSON(http.StatusOK, gin.H{
 			"success": true,
@@ -239,7 +206,7 @@ func orderProfileHandler(client *es2.ES2Client) gin.HandlerFunc {
 	}
 }
 
-func getProfileHandler(client *ES2Client) gin.HandlerFunc {
+func getProfileHandler(client *es2.ES2Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		profileID := c.Param("profileId")
 
@@ -268,7 +235,7 @@ func getProfileHandler(client *ES2Client) gin.HandlerFunc {
 	}
 }
 
-func listProfilesHandler(client *ES2Client) gin.HandlerFunc {
+func listProfilesHandler(client *es2.ES2Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		logger.Info().Msg("API request: Listing eSIM profiles")
 
@@ -312,7 +279,7 @@ func listProfilesHandler(client *ES2Client) gin.HandlerFunc {
 	}
 }
 
-func deleteProfileHandler(client *ES2Client) gin.HandlerFunc {
+func deleteProfileHandler(client *es2.ES2Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		profileID := c.Param("profileId")
 
@@ -336,7 +303,7 @@ func deleteProfileHandler(client *ES2Client) gin.HandlerFunc {
 	}
 }
 
-func getCarrierInfoHandler(client *ES2Client) gin.HandlerFunc {
+func getCarrierInfoHandler(client *es2.ES2Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		logger.Info().Msg("API request: Getting carrier information")
 
@@ -346,7 +313,7 @@ func getCarrierInfoHandler(client *ES2Client) gin.HandlerFunc {
 				"name":        "Example Carrier",
 				"mcc":         "208",
 				"mnc":         "93",
-				"smdpUrl":     client.baseURL,
+				"smdpUrl":     "https://smdp.example.com", // Use config value
 				"supported":   true,
 				"lastChecked": time.Now().UTC(),
 			},
@@ -354,17 +321,23 @@ func getCarrierInfoHandler(client *ES2Client) gin.HandlerFunc {
 	}
 }
 
-func checkConnectivityHandler(client *ES2Client) gin.HandlerFunc {
+func checkConnectivityHandler(client *es2.ES2Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		logger.Info().Msg("API request: Checking SM-DP+ connectivity")
 
-		// Simple connectivity check by making a request to SM-DP+
-		resp, err := client.httpClient.R().Get("/health")
+		// Simple connectivity check using the ES2+ client
+		// Use a GetProfileStatus request with dummy data to test connectivity
+		req := &es2.GetProfileStatusRequest{
+			EID:   "test-eid",
+			ICCID: "test-iccid",
+		}
 
-		isConnected := err == nil && resp.StatusCode() < 500
-		statusCode := 0
-		if resp != nil {
-			statusCode = resp.StatusCode()
+		_, err := client.GetProfileStatus(context.Background(), req)
+
+		isConnected := err == nil
+		statusCode := 200
+		if err != nil {
+			statusCode = 500 // Assume connection error
 		}
 
 		c.JSON(http.StatusOK, gin.H{
