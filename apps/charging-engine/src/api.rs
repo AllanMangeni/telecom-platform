@@ -10,6 +10,7 @@ use tracing::{info, warn};
 use crate::errors::{ChargingError, ChargingResult, validate_ip, validate_bytes, ErrorContext};
 use crate::models::*;
 
+#[derive(Clone)]
 pub struct AppState {
     pub charging_engine: std::sync::Arc<crate::charging::ChargingEngine>,
 }
@@ -54,7 +55,7 @@ pub async fn check_credit(
 
     Ok(Json(CreditCheckResponse {
         allowed,
-        remaining_bytes: remaining,
+        remaining_bytes: remaining as i64,
     }))
 }
 
@@ -116,7 +117,7 @@ pub async fn get_balance(
     
     Ok(Json(BalanceResponse {
         ip,
-        balance_bytes: balance,
+        balance_bytes: balance as i64,
     }))
 }
 
