@@ -19,12 +19,13 @@ type MockRedisClient struct {
 }
 
 func (m *MockRedisClient) Eval(ctx context.Context, script string, keys []string, args ...interface{}) *redis.Cmd {
-	callArgs := []any{script}
+	argsList := make([]interface{}, 0, len(keys)+len(args)+1)
+	argsList = append(argsList, script)
 	for _, key := range keys {
-		callArgs = append(callArgs, key)
+		argsList = append(argsList, key)
 	}
-	callArgs = append(callArgs, args...)
-	return m.Called(callArgs...).Get(0).(*redis.Cmd)
+	argsList = append(argsList, args...)
+	return m.Called(argsList...).Get(0).(*redis.Cmd)
 }
 
 func (m *MockRedisClient) Del(ctx context.Context, keys ...string) *redis.IntCmd {
@@ -63,7 +64,8 @@ func TestRedisRateLimiter_Allow(t *testing.T) {
 
 			cmd := redis.NewCmd(context.Background())
 			cmd.SetVal(mockResult)
-			mockClient.On("Eval", mock.AnythingOfType("[]interface {}")).Return(cmd)
+			// Match the actual call signature: script, key, now, window, limit
+			mockClient.On("Eval", mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("int64"), mock.AnythingOfType("int64"), mock.AnythingOfType("int64")).Return(cmd)
 
 			// Create rate limiter with mock client
 			limiter := NewRedisRateLimiter(mockClient, "test", tt.limit, tt.window)
@@ -114,7 +116,7 @@ func TestRedisRateLimitMiddleware(t *testing.T) {
 			// Mock successful rate limit check
 			cmd := redis.NewCmd(context.Background())
 			cmd.SetVal([]interface{}{int64(1), int64(4), int64(time.Now().Unix() + 60)})
-			mockClient.On("Eval", mock.AnythingOfType("[]interface {}")).Return(cmd)
+			mockClient.On("Eval", mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("int64"), mock.AnythingOfType("int64"), mock.AnythingOfType("int64")).Return(cmd)
 
 			// Create rate limiter with mock client
 			limiter := NewRedisRateLimiter(mockClient, "test", 5, time.Minute)

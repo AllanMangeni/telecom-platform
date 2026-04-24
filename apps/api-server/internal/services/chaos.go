@@ -202,7 +202,13 @@ func (cs *ChaosService) GetActiveExperiments() []*Experiment {
 
 	experiments := make([]*Experiment, 0, len(cs.active))
 	for _, exp := range cs.active {
-		experiments = append(experiments, exp)
+		// Create a copy to avoid race conditions
+		copy := *exp
+		if exp.Finished != nil {
+			finished := *exp.Finished
+			copy.Finished = &finished
+		}
+		experiments = append(experiments, &copy)
 	}
 	return experiments
 }
@@ -213,7 +219,16 @@ func (cs *ChaosService) GetExperimentStatus(id string) (*Experiment, bool) {
 	defer cs.mu.RUnlock()
 
 	exp, exists := cs.active[id]
-	return exp, exists
+	if !exists {
+		return nil, false
+	}
+	// Create a copy to avoid race conditions
+	copy := *exp
+	if exp.Finished != nil {
+		finished := *exp.Finished
+		copy.Finished = &finished
+	}
+	return &copy, true
 }
 
 // Middleware function to inject chaos into HTTP requests
