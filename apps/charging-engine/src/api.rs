@@ -37,6 +37,9 @@ pub fn create_router(state: AppState) -> Router {
         .route("/v1/blocked/:ip", get(is_user_blocked))
         .route("/v1/stats", get(get_system_stats))
         .route("/v1/metrics", get(get_performance_metrics))
+        .route("/v1/errors", get(get_error_stats))
+        .route("/v1/sync/start", post(start_sync))
+        .route("/v1/health/detailed", get(detailed_health_check))
         .route("/v1/engine/start", post(engine_start))
         .route("/v1/engine/stop", post(engine_stop))
         .route("/v1/engine/uptime", get(engine_uptime))
@@ -360,13 +363,15 @@ pub async fn update_subscriber(
 ) -> ChargingResult<Json<serde_json::Value>> {
     let account = crate::charging::types::SubscriberAccount {
         imsi: imsi.clone(),
-        balance: req.get("balance").and_then(|v| v.as_u64()).unwrap_or(0),
+        balance: req.get("balance").and_then(|v| v.as_i64()).unwrap_or(0),
         data_used: req.get("data_used").and_then(|v| v.as_u64()).unwrap_or(0),
         data_limit: req.get("data_limit").and_then(|v| v.as_u64()).unwrap_or(1_000_000_000),
         voice_used: req.get("voice_used").and_then(|v| v.as_u64()).unwrap_or(0),
         voice_limit: req.get("voice_limit").and_then(|v| v.as_u64()).unwrap_or(1000),
         sms_used: req.get("sms_used").and_then(|v| v.as_u64()).unwrap_or(0),
         sms_limit: req.get("sms_limit").and_then(|v| v.as_u64()).unwrap_or(100),
+        status: crate::charging::types::AccountStatus::Active,
+        last_updated: chrono::Utc::now(),
     };
     
     state.charging_engine.update_subscriber_account(&account).await
