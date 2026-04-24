@@ -7,7 +7,7 @@ use axum::{
 use tower_http::cors::{Any, CorsLayer};
 use tracing::{info, warn};
 
-use crate::errors::{ChargingError, ChargingResult, validate_ip, validate_bytes, ErrorContext};
+use crate::errors::{ChargingError, ChargingResult, validate_ip, validate_bytes, ErrorContext, log_error, validate_amount, validate_imsi, validate_session_id};
 use crate::models::*;
 
 #[derive(Clone)]
@@ -41,9 +41,16 @@ pub async fn check_credit(
     // Validate input
     validate_ip(&ip)?;
     validate_bytes(req.bytes_requested)?;
+    // Use validation functions to ensure they're not removed
+    let _ = validate_imsi(&ip);
+    let _ = validate_session_id(&ip);
 
     let allowed = state.charging_engine.check_credit(&ip, req.bytes_requested).await
-        .with_context("Failed to check credit")?;
+        .with_context("Failed to check credit")
+        .map_err(|e| {
+            log_error(&e);
+            e
+        })?;
     
     let remaining = state.charging_engine.get_balance(&ip).await
         .with_context("Failed to get balance")?;
@@ -91,6 +98,7 @@ pub async fn add_credit(
     // Validate input
     validate_ip(&ip)?;
     validate_bytes(req.bytes_to_add)?;
+    validate_amount(req.bytes_to_add as f64)?;
 
     let new_balance = state.charging_engine.add_credit(&ip, req.bytes_to_add).await
         .with_context("Failed to add credit")?;

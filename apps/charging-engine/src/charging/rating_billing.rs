@@ -2,7 +2,7 @@ use chrono::Utc;
 use tracing::{info, debug, warn};
 
 use super::types::{UsageEvent, UsageType};
-use crate::errors::{ChargingError, ChargingResult, ErrorContext};
+use crate::errors::{ChargingError, ChargingResult, ErrorContext, validate_amount};
 
 impl super::ChargingEngine {
     pub async fn calculate_usage_cost(&self, event: &UsageEvent) -> ChargingResult<f64> {
@@ -29,6 +29,8 @@ impl super::ChargingEngine {
                 event.volume as f64 * plan.sms_rate
             }
         };
+
+        validate_amount(cost)?;
 
         debug!("Calculated cost for IMSI {}: ${:.4}", event.imsi, cost);
         Ok(cost)

@@ -3,7 +3,7 @@ use tracing::{info, warn, error, debug};
 use std::time::Duration;
 use chrono::Datelike;
 
-use crate::errors::{ChargingError, ChargingResult, ErrorContext};
+use crate::errors::{ChargingError, ChargingResult, ErrorContext, log_error};
 use crate::monitoring::types::{SystemStats, HealthStatus};
 
 impl crate::charging::ChargingEngine {
@@ -22,21 +22,29 @@ impl crate::charging::ChargingEngine {
     }
 
     async fn perform_sync(&self) -> ChargingResult<()> {
-        debug!("Performing background sync");
-        
-        // Sync 1: Clean up expired blocks
-        self.cleanup_expired_blocks().await?;
-        
-        // Sync 2: Update usage statistics
-        self.update_usage_statistics().await?;
-        
-        // Sync 3: Check for low balance alerts
-        self.check_low_balance_alerts().await?;
-        
-        // Sync 4: Apply monthly fees (once per day)
-        self.apply_monthly_fees_if_needed().await?;
-        
-        debug!("Background sync completed successfully");
+        info!("Starting sync cycle");
+
+        if let Err(e) = self.cleanup_expired_blocks().await {
+            warn!("Failed to cleanup expired blocks: {}", e);
+            log_error(&e);
+        }
+
+        if let Err(e) = self.update_usage_statistics().await {
+            warn!("Failed to update usage statistics: {}", e);
+            log_error(&e);
+        }
+
+        if let Err(e) = self.check_low_balance_alerts().await {
+            warn!("Failed to check low balance alerts: {}", e);
+            log_error(&e);
+        }
+
+        if let Err(e) = self.apply_monthly_fees_if_needed().await {
+            warn!("Failed to apply monthly fees: {}", e);
+            log_error(&e);
+        }
+
+        info!("Sync cycle completed");
         Ok(())
     }
 

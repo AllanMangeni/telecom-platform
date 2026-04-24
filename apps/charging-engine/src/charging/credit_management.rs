@@ -2,7 +2,7 @@ use redis::AsyncCommands;
 use tracing::{info, warn, error, debug};
 
 use super::types::{SubscriberAccount, UsageEvent, ChargingSession};
-use crate::errors::{ChargingError, ChargingResult, ErrorContext};
+use crate::errors::{ChargingError, ChargingResult, ErrorContext, validate_imsi, validate_session_id, validate_bytes};
 
 impl crate::charging::ChargingEngine {
     pub async fn get_balance(&self, ip: &str) -> ChargingResult<u64> {
@@ -99,6 +99,8 @@ impl crate::charging::ChargingEngine {
     }
 
     pub async fn get_subscriber_account(&self, imsi: &str) -> ChargingResult<Option<SubscriberAccount>> {
+        validate_imsi(imsi)?;
+
         let mut conn = self.redis_client.get_multiplexed_async_connection().await
             .map_err(|e| crate::errors::ChargingError::RedisConnection(e.to_string()))?;
 
@@ -122,6 +124,8 @@ impl crate::charging::ChargingEngine {
     }
 
     pub async fn record_usage_event(&self, event: &UsageEvent) -> ChargingResult<()> {
+        validate_session_id(&event.session_id)?;
+
         let mut conn = self.redis_client.get_multiplexed_async_connection().await
             .map_err(|e| crate::errors::ChargingError::RedisConnection(e.to_string()))?;
 
