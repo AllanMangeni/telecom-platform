@@ -7,7 +7,7 @@ Thank you for your interest in contributing to the TaaS Platform! This document 
 1. **Fork the repository**
 2. **Clone your fork:**
    ```bash
-   git clone https://github.com/YOUR_USERNAME/telecom-platform.git
+   git clone https://github.com/nutcas3/telecom-platform.git
    cd telecom-platform
    ```
 3. **Set up development environment:**
