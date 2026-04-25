@@ -9,16 +9,22 @@ pub enum CircuitState {
     HalfOpen,
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum CircuitBreakerError<E>
-where
-    E: std::error::Error + Send + Sync + 'static,
-{
-    #[error("Circuit breaker is open")]
+#[derive(Debug)]
+pub enum CircuitBreakerError<E> {
     Open,
-    #[error("Wrapped error: {0}")]
-    Inner(#[from] E),
+    Inner(E),
 }
+
+impl<E: std::fmt::Display> std::fmt::Display for CircuitBreakerError<E> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CircuitBreakerError::Open => write!(f, "Circuit breaker is open"),
+            CircuitBreakerError::Inner(e) => write!(f, "Wrapped error: {}", e),
+        }
+    }
+}
+
+impl<E: std::error::Error + Send + Sync + 'static> std::error::Error for CircuitBreakerError<E> {}
 
 #[derive(Clone)]
 pub struct CircuitBreaker {
@@ -40,9 +46,10 @@ impl CircuitBreaker {
         }
     }
 
-    pub async fn execute<F, T, E>(&self, operation: F) -> Result<T, CircuitBreakerError<E>>
+    pub async fn execute<F, Fut, T, E>(&self, operation: F) -> Result<T, CircuitBreakerError<E>>
     where
-        F: std::future::Future<Output = Result<T, E>>,
+        F: FnOnce() -> Fut,
+        Fut: std::future::Future<Output = Result<T, E>>,
         E: std::error::Error + Send + Sync + 'static,
     {
         // Check if circuit is open and should attempt to close
@@ -55,7 +62,7 @@ impl CircuitBreaker {
         }
 
         // Execute the operation
-        let result = operation.await;
+        let result = operation().await;
 
         match result {
             Ok(value) => {

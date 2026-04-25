@@ -4,7 +4,7 @@ use tracing::info;
 
 use super::rating_plans_repo::RatingPlansRepo;
 use super::types::RatingPlan;
-use crate::circuit_breaker::CircuitBreaker;
+// use crate::circuit_breaker::CircuitBreaker;
 use crate::errors::ChargingResult;
 
 /// ChargingEngine coordinates Redis-backed hot-path state (balances, sessions)
@@ -14,8 +14,8 @@ pub struct ChargingEngine {
     pub(crate) plans: RatingPlansRepo,
     pub(crate) sync_interval: Duration,
     pub(crate) startup_time: SystemTime,
-    pub(crate) redis_circuit_breaker: CircuitBreaker,
-    pub(crate) postgres_circuit_breaker: CircuitBreaker,
+    // pub(crate) redis_circuit_breaker: CircuitBreaker,
+    // pub(crate) postgres_circuit_breaker: CircuitBreaker,
 }
 
 impl ChargingEngine {
@@ -31,6 +31,7 @@ impl ChargingEngine {
             .map_err(|e| crate::errors::ChargingError::RedisConnection(e.to_string()))?;
 
         // Initialize circuit breakers with configurable thresholds
+        /*
         let redis_cb_threshold: u32 = std::env::var("REDIS_CB_THRESHOLD")
             .ok()
             .and_then(|s| s.parse().ok())
@@ -48,14 +49,15 @@ impl ChargingEngine {
             .ok()
             .and_then(|s| s.parse().ok())
             .unwrap_or(60);
+        */
 
         Ok(Self {
             redis_client,
             plans,
             sync_interval: Duration::from_secs(sync_interval_secs),
             startup_time: SystemTime::now(),
-            redis_circuit_breaker: CircuitBreaker::new(redis_cb_threshold, Duration::from_secs(redis_cb_timeout)),
-            postgres_circuit_breaker: CircuitBreaker::new(postgres_cb_threshold, Duration::from_secs(postgres_cb_timeout)),
+            // redis_circuit_breaker: CircuitBreaker::new(redis_cb_threshold, Duration::from_secs(redis_cb_timeout)),
+            // postgres_circuit_breaker: CircuitBreaker::new(postgres_cb_threshold, Duration::from_secs(postgres_cb_timeout)),
         })
     }
 
