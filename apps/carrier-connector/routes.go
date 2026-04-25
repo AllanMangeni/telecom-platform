@@ -10,10 +10,11 @@ import (
 	"github.com/nutcas3/telecom-platform/apps/carrier-connector/internal/es2"
 	handler "github.com/nutcas3/telecom-platform/apps/carrier-connector/internal/handler"
 	"github.com/nutcas3/telecom-platform/apps/carrier-connector/internal/repository"
+	"github.com/nutcas3/telecom-platform/apps/carrier-connector/internal/webhook"
 )
 
-// setupRoutes registers all HTTP routes, wiring the ES2+ client and profile repo.
-func setupRoutes(router *gin.Engine, client *es2.ES2Client, repo repository.ProfileRepository) {
+// setupRoutes registers all HTTP routes, wiring the ES2+ client, profile repo, and webhook client.
+func setupRoutes(router *gin.Engine, client *es2.ES2Client, repo repository.ProfileRepository, webhookClient *webhook.WebhookClient) {
 	api := router.Group("/api/v1")
 	api.GET("/health", healthHandler)
 	api.GET("/health/ready", readinessHandler(repo))
@@ -22,10 +23,10 @@ func setupRoutes(router *gin.Engine, client *es2.ES2Client, repo repository.Prof
 
 	esim := api.Group("/esim")
 	{
-		esim.POST("/profiles", handler.OrderProfileHandlerWithRepo(client, repo))
+		esim.POST("/profiles", handler.OrderProfileHandlerWithRepo(client, repo, webhookClient))
 		esim.GET("/profiles", handler.ListProfilesHandlerWithRepo(repo))
 		esim.GET("/profiles/:profileId", handler.GetProfileHandlerWithRepo(client, repo))
-		esim.DELETE("/profiles/:profileId", handler.DeleteProfileHandlerWithRepo(client, repo))
+		esim.DELETE("/profiles/:profileId", handler.DeleteProfileHandlerWithRepo(client, repo, webhookClient))
 	}
 
 	carrier := api.Group("/carrier")

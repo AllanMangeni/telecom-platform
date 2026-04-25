@@ -11,6 +11,7 @@ import (
 	"github.com/nutcas3/telecom-platform/apps/carrier-connector/internal/es2"
 	handler "github.com/nutcas3/telecom-platform/apps/carrier-connector/internal/handler"
 	"github.com/nutcas3/telecom-platform/apps/carrier-connector/internal/repository"
+	"github.com/nutcas3/telecom-platform/apps/carrier-connector/internal/webhook"
 	"github.com/rs/zerolog"
 )
 
@@ -56,7 +57,12 @@ func main() {
 	profileRepo := repository.NewCachedProfileStore(postgresRepo, 5*time.Minute)
 	defer profileRepo.Close()
 
-	setupRoutes(router, client, profileRepo)
+	// Initialize webhook client for api-server notifications
+	webhookURL := handler.GetEnv("API_SERVER_WEBHOOK_URL", "")
+	webhookAPIKey := handler.GetEnv("API_SERVER_WEBHOOK_API_KEY", "")
+	webhookClient := webhook.NewWebhookClient(webhookURL, webhookAPIKey)
+
+	setupRoutes(router, client, profileRepo, webhookClient)
 
 	handler.Logger.Info().Str("port", port).Msg("Carrier Connector API server starting")
 	if err := router.Run(":" + port); err != nil {
