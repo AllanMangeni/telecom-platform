@@ -45,11 +45,26 @@ struct Args {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    // Initialize tracing
-    tracing_subscriber::fmt()
-        .with_target(false)
-        .compact()
-        .init();
+    // Initialize tracing with centralized logging support
+    let log_format = std::env::var("LOG_FORMAT").unwrap_or_else(|_| "compact".to_string());
+    let log_json = std::env::var("LOG_JSON").unwrap_or_else(|_| "false".to_string()) == "true";
+    
+    let subscriber = tracing_subscriber::fmt()
+        .with_target(true)
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::from_default_env()
+                .add_directive(tracing::LevelFilter::INFO.into())
+        );
+    
+    if log_json {
+        subscriber.json().init();
+    } else if log_format == "pretty" {
+        subscriber.pretty().init();
+    } else {
+        subscriber.compact().init();
+    }
+    
+    info!("Packet gateway logging initialized (format: {}, json: {})", log_format, log_json);
 
     dotenv::dotenv().ok();
     let args = Args::parse();
