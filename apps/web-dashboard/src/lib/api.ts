@@ -1,6 +1,9 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const CACHE_TTL = parseInt(process.env.NEXT_PUBLIC_CACHE_TTL || "30000");
 
 let authToken: string | null = null;
+
+import { getCachedData, invalidateCachePattern } from "./cache";
 
 export function setAuthToken(token: string) {
   authToken = token;
@@ -22,9 +25,22 @@ export function clearAuthToken() {
   if (typeof window !== "undefined") {
     localStorage.removeItem("auth_token");
   }
+  invalidateCachePattern(".*");
 }
 
-async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+async function apiFetch<T>(path: string, init?: RequestInit, useCache: boolean = false): Promise<T> {
+  if (useCache && init?.method === "GET") {
+    try {
+      return await getCachedData(path, () => fetchUncached<T>(path, init), CACHE_TTL);
+    } catch (e) {
+      console.error("Cache fetch failed, falling back to direct fetch:", e);
+      return fetchUncached<T>(path, init);
+    }
+  }
+  return fetchUncached<T>(path, init);
+}
+
+async function fetchUncached<T>(path: string, init?: RequestInit): Promise<T> {
   const token = getAuthToken();
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (token) {
