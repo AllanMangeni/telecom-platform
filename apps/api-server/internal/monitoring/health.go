@@ -94,7 +94,26 @@ func (hm *HealthMonitor) CheckHealth(ctx context.Context) SystemHealth {
 
 	for name, checker := range checks {
 		checkCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
-		result := checker.CheckHealth(checkCtx)
+
+		// Execute health check with timeout
+		resultChan := make(chan HealthCheck, 1)
+		go func() {
+			resultChan <- checker.CheckHealth(checkCtx)
+		}()
+
+		var result HealthCheck
+		select {
+		case result = <-resultChan:
+			// Check completed successfully
+		case <-checkCtx.Done():
+			// Timeout occurred
+			result = HealthCheck{
+				Name:         name,
+				Status:       StatusUnhealthy,
+				Message:      "Health check timed out",
+				ResponseTime: 10 * time.Second,
+			}
+		}
 		cancel()
 
 		result.LastChecked = time.Now()
