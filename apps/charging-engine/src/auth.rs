@@ -17,12 +17,26 @@ pub struct Claims {
 #[derive(Clone)]
 pub struct AuthConfig {
     pub secret: String,
+    pub api_keys: Vec<String>,
 }
 
 impl AuthConfig {
     pub fn from_env() -> Self {
         let secret = env::var("JWT_SECRET").unwrap_or_else(|_| "default_secret_key_change_in_production".to_string());
-        Self { secret }
+        
+        // Parse API keys from comma-separated environment variable
+        let api_keys_env = env::var("API_KEYS").unwrap_or_else(|_| String::new());
+        let api_keys: Vec<String> = api_keys_env
+            .split(',')
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect();
+        
+        Self { secret, api_keys }
+    }
+    
+    pub fn validate_api_key(&self, api_key: &str) -> bool {
+        self.api_keys.iter().any(|key| key == api_key)
     }
 }
 
@@ -65,6 +79,19 @@ pub async fn auth_middleware(
         .get("Authorization")
         .and_then(|h| h.to_str().ok());
 
+    // Check for API key authentication
+    let api_key_header = request
+        .headers()
+        .get("X-API-Key")
+        .and_then(|h| h.to_str().ok());
+
+    if let Some(api_key) = api_key_header {
+        if config.validate_api_key(api_key) {
+            return Ok(next.run(request).await);
+        }
+    }
+
+    // Check for JWT authentication
     if let Some(auth_header) = auth_header {
         if let Some(token) = auth_header.strip_prefix("Bearer ") {
             match validate_token(token, &config) {
@@ -74,8 +101,7 @@ pub async fn auth_middleware(
         }
     }
 
-    // For now, allow requests without auth for packet-gateway integration
+    // Allow requests without auth for development/testing
     // In production, you would want to enable strict authentication
-    // or use API keys for service-to-service communication
     Ok(next.run(request).await)
 }
