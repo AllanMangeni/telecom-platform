@@ -57,6 +57,7 @@ func registerV1Routes(router *gin.Engine, d *serverDeps) {
 	apiProtected := v1.Group("/")
 	apiProtected.Use(middleware.AuthMiddleware(d.authSvc))
 	{
+		registerSubscriberRoutes(apiProtected, d)
 		registerServicesRoutes(apiProtected, d)
 		registerMonitoringRoutes(apiProtected, d)
 		registerDeployRoutes(apiProtected, d)
@@ -172,4 +173,18 @@ func registerChaosRoutes(api *gin.RouterGroup, d *serverDeps) {
 	w := chaosGroup.Group("/")
 	applyRBAC(w, d.casbinSvc, "/v1/chaos", "POST", "admin")
 	w.POST("/experiments", d.chaosH.Run)
+}
+
+func registerSubscriberRoutes(api *gin.RouterGroup, d *serverDeps) {
+	subs := api.Group("/subscribers")
+	subs.GET("", d.subscriberH.ListSubscribers)
+	subs.GET("/:id", d.subscriberH.GetSubscriber)
+	subs.GET("/imsi/:imsi", d.subscriberH.GetSubscriberByIMSI)
+
+	w := subs.Group("/")
+	applyRBAC(w, d.casbinSvc, "/v1/subscribers", "POST", "admin", "operator")
+	w.POST("", d.subscriberH.CreateSubscriber)
+	w.PUT("/:id", d.subscriberH.UpdateSubscriber)
+	w.POST("/:id/suspend", d.subscriberH.SuspendSubscriber)
+	w.POST("/:id/terminate", d.subscriberH.TerminateSubscriber)
 }

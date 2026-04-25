@@ -18,6 +18,7 @@ type serverDeps struct {
 	casbinSvc *rbac.CasbinService
 
 	authH        *handlers.AuthHandler
+	subscriberH  *handlers.SubscriberHandler
 	servicesH    *handlers.ServicesHandler
 	monitoringH  *handlers.MonitoringHandler
 	deploymentsH *handlers.DeploymentsHandler
@@ -46,6 +47,7 @@ func buildDeps(db *database.Database, cfg *config.Config) *serverDeps {
 	configStoreSvc := services.NewConfigStoreService(db)
 	deploymentSvc := services.NewDeploymentService(db)
 	promSvc := monitoring.NewPrometheusService()
+	subscriberSvc := services.NewSubscriberService(db, cfg)
 
 	// Initialize charging engine client
 	chargingEngineClient := services.NewChargingEngineClient(&cfg.ChargingEngine)
@@ -59,6 +61,7 @@ func buildDeps(db *database.Database, cfg *config.Config) *serverDeps {
 		authSvc:      authSvc,
 		casbinSvc:    casbinSvc,
 		authH:        handlers.NewAuthHandler(authSvc),
+		subscriberH:  handlers.NewSubscriberHandler(subscriberSvc),
 		servicesH:    handlers.NewServicesHandler(k8sSvc),
 		monitoringH:  handlers.NewMonitoringHandler(promSvc),
 		deploymentsH: handlers.NewDeploymentsHandler(deploymentSvc),
