@@ -25,6 +25,10 @@ jobs:
       packages: write
     outputs:
       api-image: ${{ steps.api-meta.outputs.tags }}
+      carrier-image: ${{ steps.carrier-meta.outputs.tags }}
+      charging-image: ${{ steps.charging-meta.outputs.tags }}
+      gateway-image: ${{ steps.gateway-meta.outputs.tags }}
+      cli-image: ${{ steps.cli-meta.outputs.tags }}
       dashboard-image: ${{ steps.dashboard-meta.outputs.tags }}
     steps:
       - name: Checkout code
@@ -54,6 +58,78 @@ jobs:
           push: true
           tags: ${{ steps.api-meta.outputs.tags }}
           labels: ${{ steps.api-meta.outputs.labels }}
+
+      - name: Extract metadata (Carrier Connector)
+        id: carrier-meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}/carrier-connector
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+            type=sha,prefix={{branch}}-
+
+      - name: Build and push carrier connector
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/carrier-connector
+          push: true
+          tags: ${{ steps.carrier-meta.outputs.tags }}
+          labels: ${{ steps.carrier-meta.outputs.labels }}
+
+      - name: Extract metadata (Charging Engine)
+        id: charging-meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}/charging-engine
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+            type=sha,prefix={{branch}}-
+
+      - name: Build and push charging engine
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/charging-engine
+          push: true
+          tags: ${{ steps.charging-meta.outputs.tags }}
+          labels: ${{ steps.charging-meta.outputs.labels }}
+
+      - name: Extract metadata (Packet Gateway)
+        id: gateway-meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}/packet-gateway
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+            type=sha,prefix={{branch}}-
+
+      - name: Build and push packet gateway
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/packet-gateway
+          push: true
+          tags: ${{ steps.gateway-meta.outputs.tags }}
+          labels: ${{ steps.gateway-meta.outputs.labels }}
+
+      - name: Extract metadata (CLI)
+        id: cli-meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}/cli
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+            type=sha,prefix={{branch}}-
+
+      - name: Build and push CLI
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/cli
+          push: true
+          tags: ${{ steps.cli-meta.outputs.tags }}
+          labels: ${{ steps.cli-meta.outputs.labels }}
 
       - name: Extract metadata (Dashboard)
         id: dashboard-meta
