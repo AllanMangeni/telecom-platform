@@ -22,7 +22,7 @@ pub fn create_router(state: AppState) -> Router {
 
     Router::new()
         // Public routes (no auth required - for packet-gateway integration)
-        .route("/health", get(health_check))
+        .route("/v1/health", get(health_check))
         .route("/v1/credit/:ip/check", post(check_credit))
         .route("/v1/credit/:ip/deduct", post(deduct_credit))
         .route("/v1/credit/:ip/balance", get(get_balance))
