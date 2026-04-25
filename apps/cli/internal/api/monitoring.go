@@ -1,6 +1,9 @@
 package api
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 // Alert represents a monitoring alert
 type Alert struct {
@@ -59,4 +62,52 @@ func (c *Client) GetHealth() ([]HealthStatus, error) {
 		return nil, err
 	}
 	return resp.Data, nil
+}
+
+// ServiceHealth represents the health status of a single service
+type ServiceHealth struct {
+	Name     string `json:"name"`
+	Status   string `json:"status"`
+	Endpoint string `json:"endpoint"`
+	Message  string `json:"message,omitempty"`
+}
+
+// CheckAllServices checks the health of all platform services
+func (c *Client) CheckAllServices() ([]ServiceHealth, error) {
+	services := []struct {
+		name     string
+		endpoint string
+	}{
+		{"api-server", "/health"},
+		{"charging-engine", "/health"},
+		{"carrier-connector", "/api/v1/health"},
+		{"packet-gateway", "/health"},
+		{"web-dashboard", "/health"},
+	}
+
+	healthResults := make([]ServiceHealth, 0, len(services))
+	for _, svc := range services {
+		health := ServiceHealth{
+			Name:     svc.name,
+			Endpoint: svc.endpoint,
+		}
+
+		resp, err := c.httpClient.Get(c.baseURL + svc.endpoint)
+		if err != nil {
+			health.Status = "unreachable"
+			health.Message = err.Error()
+		} else {
+			defer resp.Body.Close()
+			if resp.StatusCode == 200 {
+				health.Status = "healthy"
+			} else {
+				health.Status = "unhealthy"
+				health.Message = fmt.Sprintf("HTTP %d", resp.StatusCode)
+			}
+		}
+
+		healthResults = append(healthResults, health)
+	}
+
+	return healthResults, nil
 }
