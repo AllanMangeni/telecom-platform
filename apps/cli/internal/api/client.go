@@ -417,3 +417,168 @@ func (c *Client) IsConnected() bool {
 
 	return resp.StatusCode == http.StatusOK
 }
+
+// Charging Engine Integration
+type CreditCheckRequest struct {
+	BytesRequested uint64 `json:"bytes_requested"`
+}
+
+type CreditCheckResponse struct {
+	Allowed   bool   `json:"allowed"`
+	Available uint64 `json:"available"`
+	Requested uint64 `json:"requested"`
+	Remaining uint64 `json:"remaining"`
+}
+
+type CreditBalanceResponse struct {
+	Balance uint64 `json:"balance"`
+}
+
+type CreditAddRequest struct {
+	BytesToAdd uint64 `json:"bytes_to_add"`
+}
+
+type CreditDeductRequest struct {
+	BytesUsed uint64 `json:"bytes_used"`
+}
+
+// CheckCredit checks if a subscriber has enough credit
+func (c *Client) CheckCredit(ip string, bytesRequested uint64) (*CreditCheckResponse, error) {
+	var resp CreditCheckResponse
+	req := CreditCheckRequest{BytesRequested: bytesRequested}
+	if err := c.doPostJSON("/v1/charging/credit/"+ip+"/check", req, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// GetBalance gets the current credit balance for a subscriber
+func (c *Client) GetBalance(ip string) (*CreditBalanceResponse, error) {
+	var resp CreditBalanceResponse
+	if err := c.doGetJSON("/v1/charging/credit/"+ip+"/balance", &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// AddCredit adds credit to a subscriber
+func (c *Client) AddCredit(ip string, bytesToAdd uint64) (*CreditBalanceResponse, error) {
+	var resp CreditBalanceResponse
+	req := CreditAddRequest{BytesToAdd: bytesToAdd}
+	if err := c.doPostJSON("/v1/charging/credit/"+ip+"/add", req, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// DeductCredit deducts credit from a subscriber
+func (c *Client) DeductCredit(ip string, bytesUsed uint64) (*CreditBalanceResponse, error) {
+	var resp CreditBalanceResponse
+	req := CreditDeductRequest{BytesUsed: bytesUsed}
+	if err := c.doPostJSON("/v1/charging/credit/"+ip+"/deduct", req, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// Carrier Connector Integration
+type CarrierInfo struct {
+	Name        string `json:"name"`
+	Country     string `json:"country"`
+	NetworkType string `json:"network_type"`
+	Status      string `json:"status"`
+}
+
+type ConnectivityStatus struct {
+	Connected bool   `json:"connected"`
+	Latency   string `json:"latency"`
+	Message   string `json:"message"`
+}
+
+type ProfileInfo struct {
+	ProfileID      string `json:"profile_id"`
+	IMSI           string `json:"imsi"`
+	Status         string `json:"status"`
+	ActivationCode string `json:"activation_code"`
+}
+
+type OrderProfileRequest struct {
+	IMSI      string `json:"imsi"`
+	ProfileID string `json:"profile_id"`
+}
+
+// GetCarrierInfo retrieves carrier information
+func (c *Client) GetCarrierInfo() (*CarrierInfo, error) {
+	var info CarrierInfo
+	if err := c.doGetJSON("/api/v1/carrier/info", &info); err != nil {
+		return nil, err
+	}
+	return &info, nil
+}
+
+// CheckConnectivity checks carrier connectivity
+func (c *Client) CheckConnectivity() (*ConnectivityStatus, error) {
+	var status ConnectivityStatus
+	if err := c.doGetJSON("/api/v1/carrier/connectivity", &status); err != nil {
+		return nil, err
+	}
+	return &status, nil
+}
+
+// ListProfiles lists eSIM profiles
+func (c *Client) ListProfiles() ([]ProfileInfo, error) {
+	var resp struct {
+		Data []ProfileInfo `json:"data"`
+	}
+	if err := c.doGetJSON("/api/v1/esim/profiles", &resp); err != nil {
+		return nil, err
+	}
+	return resp.Data, nil
+}
+
+// OrderProfile orders a new eSIM profile
+func (c *Client) OrderProfile(req *OrderProfileRequest) (*ProfileInfo, error) {
+	var profile ProfileInfo
+	if err := c.doPostJSON("/api/v1/esim/profiles", req, &profile); err != nil {
+		return nil, err
+	}
+	return &profile, nil
+}
+
+// DeleteProfile deletes an eSIM profile
+func (c *Client) DeleteProfile(profileID string) error {
+	return c.doDelete("/api/v1/esim/profiles/" + profileID)
+}
+
+// Packet Gateway Integration
+type PacketStats struct {
+	IP    uint64 `json:"ip"`
+	Bytes uint64 `json:"bytes"`
+}
+
+type CreditInfo struct {
+	IP     uint64 `json:"ip"`
+	Credit int64  `json:"credit"`
+}
+
+// GetPacketStats retrieves packet statistics
+func (c *Client) GetPacketStats() ([]PacketStats, error) {
+	var resp struct {
+		Data []PacketStats `json:"data"`
+	}
+	if err := c.doGetJSON("/api/v1/packet-gateway/stats", &resp); err != nil {
+		return nil, err
+	}
+	return resp.Data, nil
+}
+
+// GetCreditInfo retrieves credit information from packet gateway
+func (c *Client) GetCreditInfo() ([]CreditInfo, error) {
+	var resp struct {
+		Data []CreditInfo `json:"data"`
+	}
+	if err := c.doGetJSON("/api/v1/packet-gateway/credits", &resp); err != nil {
+		return nil, err
+	}
+	return resp.Data, nil
+}
