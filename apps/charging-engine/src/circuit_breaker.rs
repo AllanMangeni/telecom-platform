@@ -2,7 +2,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Copy)]
 pub enum CircuitState {
     Closed,
     Open,
@@ -10,13 +10,17 @@ pub enum CircuitState {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum CircuitBreakerError<E> {
+pub enum CircuitBreakerError<E>
+where
+    E: std::error::Error + Send + Sync + 'static,
+{
     #[error("Circuit breaker is open")]
     Open,
     #[error("Wrapped error: {0}")]
     Inner(#[from] E),
 }
 
+#[derive(Clone)]
 pub struct CircuitBreaker {
     state: Arc<RwLock<CircuitState>>,
     failure_count: Arc<RwLock<u32>>,
@@ -39,6 +43,7 @@ impl CircuitBreaker {
     pub async fn execute<F, T, E>(&self, operation: F) -> Result<T, CircuitBreakerError<E>>
     where
         F: std::future::Future<Output = Result<T, E>>,
+        E: std::error::Error + Send + Sync + 'static,
     {
         // Check if circuit is open and should attempt to close
         self.check_state().await;

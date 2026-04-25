@@ -18,7 +18,8 @@ chrono = { workspace = true }
 axum = { workspace = true }
 tower = { workspace = true }
 tower-http = { workspace = true }
-tower-governor = "0.4.2"
+tower_governor = "0.8.0"
+governor = "0.10.4"
 serde = { workspace = true }
 serde_json = { workspace = true }
 tracing = { workspace = true }
@@ -27,11 +28,12 @@ anyhow = { workspace = true }
 dotenv = { workspace = true }
 uuid = { workspace = true }
 jsonwebtoken = "10.3.0"
+thiserror = "2.0.18"
 
 [dev-dependencies]
-tokio-test = "0.4"
-mockall = "0.13"
-serial_test = "3.2"
+tokio-test = "0.4.5"
+mockall = "0.14.0"
+serial_test = "3.4.0"
 
 [[bin]]
 name = "charging-engine"

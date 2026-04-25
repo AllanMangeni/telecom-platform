@@ -1,5 +1,4 @@
 use axum::{
-    extract::Request,
     http::StatusCode,
     response::{IntoResponse, Response},
 };
@@ -9,14 +8,12 @@ use governor::{
     Jitter, Quota, RateLimiter,
 };
 use std::num::NonZeroU32;
-use std::sync::Arc;
 use tower_governor::{
     governor::config::GovernorConfigBuilder,
     key_extractor::SmartIpKeyExtractor,
-    GovernorLayer,
 };
 
-pub fn create_rate_limiter() -> GovernorLayer<SmartIpKeyExtractor> {
+pub fn create_rate_limiter() -> tower_governor::GovernorLayer<SmartIpKeyExtractor, governor::state::InMemoryState, governor::clock::DefaultClock> {
     let requests_per_second: u32 = std::env::var("RATE_LIMIT_RPS")
         .ok()
         .and_then(|s| s.parse().ok())
@@ -35,8 +32,8 @@ pub fn create_rate_limiter() -> GovernorLayer<SmartIpKeyExtractor> {
         .finish()
         .unwrap();
 
-    GovernorLayer {
-        config,
+    tower_governor::GovernorLayer {
+        config: Arc::new(config),
         key_extractor: SmartIpKeyExtractor,
     }
 }
