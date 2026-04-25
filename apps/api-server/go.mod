@@ -140,6 +140,7 @@ require (
 	github.com/prometheus/client_golang v1.23.2
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/quic-go/quic-go v0.59.0 // indirect
+	github.com/rabbitmq/amqp091-go v1.11.0
 	github.com/stripe/stripe-go/v82 v82.5.1
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.1 // indirect
