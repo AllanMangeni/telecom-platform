@@ -2,7 +2,7 @@
 FROM golang:1.26-alpine AS builder
 
 LABEL maintainer="nutcas3 <nutcas3@users.noreply.github.com>" \
-      description="API Server for Telecom Platform"
+      description="CLI for Telecom Platform"
 
 WORKDIR /build
 
@@ -10,23 +10,23 @@ WORKDIR /build
 RUN apk add --no-cache git ca-certificates
 
 # Copy dependency files
-COPY apps/api-server/go.mod apps/api-server/go.sum ./
+COPY apps/cli/go.mod apps/cli/go.sum ./
 RUN go mod download
 
 # Copy source code
-COPY apps/api-server/ ./
+COPY apps/cli/ ./
 
 # Build with optimizations
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
     -ldflags="-w -s -extldflags '-static'" \
     -trimpath \
-    -o api-server .
+    -o telecom-cli .
 
 # Runtime stage
 FROM alpine:3.20
 
 LABEL maintainer="nutcas3 <nutcas3@users.noreply.github.com>" \
-      description="API Server for Telecom Platform" \
+      description="CLI for Telecom Platform" \
       version="1.0.0"
 
 # Install runtime dependencies
@@ -39,7 +39,7 @@ RUN addgroup -g 1000 appuser && \
 WORKDIR /app
 
 # Copy binary from builder
-COPY --from=builder /build/api-server .
+COPY --from=builder /build/telecom-cli .
 
 # Change ownership
 RUN chown -R appuser:appuser /app
@@ -47,17 +47,7 @@ RUN chown -R appuser:appuser /app
 # Switch to non-root user
 USER appuser
 
-# Expose port
-EXPOSE 8000
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:8000/v1/health || exit 1
-
-# Set environment variables
-ENV GIN_MODE=release
-
 # Signal handling
 STOPSIGNAL SIGTERM
 
-CMD ["./api-server"]
+CMD ["./telecom-cli"]

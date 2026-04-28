@@ -54,7 +54,8 @@ jobs:
       - name: Build and push API server
         uses: docker/build-push-action@v5
         with:
-          context: ./apps/api-server
+          context: .
+          file: ./deployments/docker/api-server.Dockerfile
           push: true
           tags: ${{ steps.api-meta.outputs.tags }}
           labels: ${{ steps.api-meta.outputs.labels }}
@@ -72,7 +73,8 @@ jobs:
       - name: Build and push carrier connector
         uses: docker/build-push-action@v5
         with:
-          context: ./apps/carrier-connector
+          context: .
+          file: ./deployments/docker/carrier-connector.Dockerfile
           push: true
           tags: ${{ steps.carrier-meta.outputs.tags }}
           labels: ${{ steps.carrier-meta.outputs.labels }}
@@ -90,7 +92,8 @@ jobs:
       - name: Build and push charging engine
         uses: docker/build-push-action@v5
         with:
-          context: ./apps/charging-engine
+          context: .
+          file: ./deployments/docker/charging-engine.Dockerfile
           push: true
           tags: ${{ steps.charging-meta.outputs.tags }}
           labels: ${{ steps.charging-meta.outputs.labels }}
@@ -108,7 +111,8 @@ jobs:
       - name: Build and push packet gateway
         uses: docker/build-push-action@v5
         with:
-          context: ./apps/packet-gateway
+          context: .
+          file: ./deployments/docker/packet-gateway.Dockerfile
           push: true
           tags: ${{ steps.gateway-meta.outputs.tags }}
           labels: ${{ steps.gateway-meta.outputs.labels }}
@@ -126,7 +130,8 @@ jobs:
       - name: Build and push CLI
         uses: docker/build-push-action@v5
         with:
-          context: ./apps/cli
+          context: .
+          file: ./deployments/docker/cli.Dockerfile
           push: true
           tags: ${{ steps.cli-meta.outputs.tags }}
           labels: ${{ steps.cli-meta.outputs.labels }}
@@ -144,7 +149,8 @@ jobs:
       - name: Build and push web dashboard
         uses: docker/build-push-action@v5
         with:
-          context: ./apps/web-dashboard
+          context: .
+          file: ./deployments/docker/web-dashboard.Dockerfile
           push: true
           tags: ${{ steps.dashboard-meta.outputs.tags }}
           labels: ${{ steps.dashboard-meta.outputs.labels }}
