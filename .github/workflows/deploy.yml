@@ -170,10 +170,13 @@ jobs:
         with:
           version: 'latest'
 
+      - name: Install goose
+        run: go install github.com/pressly/goose/v3/cmd/goose@latest
+
       - name: Run database migrations
         run: |
           echo "Running database migrations for staging..."
-          # kubectl exec -it deployment/api-server -- go run cmd/migrate/main.go --action=up
+          # goose postgres $DATABASE_URL up migrations
           echo "Staging migrations complete"
 
       - name: Deploy to staging cluster
@@ -197,10 +200,13 @@ jobs:
         with:
           version: 'latest'
 
+      - name: Install goose
+        run: go install github.com/pressly/goose/v3/cmd/goose@latest
+
       - name: Run database migrations
         run: |
           echo "Running database migrations for production..."
-          # kubectl exec -it deployment/api-server -- go run cmd/migrate/main.go --action=up
+          # goose postgres $DATABASE_URL up migrations
           echo "Production migrations complete"
 
       - name: Deploy to production cluster

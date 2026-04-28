@@ -40,11 +40,13 @@ jobs:
         working-directory: apps/api-server
         run: go mod download
 
+      - name: Install goose
+        run: go install github.com/pressly/goose/v3/cmd/goose@latest
+
       - name: Run database migrations
-        working-directory: apps/api-server
         env:
           DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db?sslmode=disable
-        run: go run cmd/migrate/main.go --action=up
+        run: goose postgres $DATABASE_URL up migrations
 
       - name: Run linter
         working-directory: apps/api-server
