@@ -37,7 +37,14 @@ pub fn create_router(state: AppState) -> Router {
         .per_second(requests_per_second as u64)
         .burst_size(burst_size)
         .finish()
-        .unwrap();
+        .unwrap_or_else(|_| {
+            // Fallback to default config if builder fails
+            GovernorConfigBuilder::default()
+                .per_second(10)
+                .burst_size(20)
+                .finish()
+                .expect("Default governor config should never fail")
+        });
 
     Router::new()
         // Public routes (no auth required - for packet-gateway integration)
