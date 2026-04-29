@@ -29,7 +29,7 @@ async fn main() -> Result<()> {
     // Initialize charging engine
     let redis_url = std::env::var("REDIS_URI").unwrap_or_else(|_| "redis://127.0.0.1/".to_string());
     let database_url = std::env::var("DATABASE_URL")
-        .expect("DATABASE_URL is required (for rating plans)");
+        .map_err(|_| anyhow::anyhow!("DATABASE_URL environment variable is required (for rating plans)"))?;
     let sync_interval = std::env::var("SYNC_INTERVAL")
         .unwrap_or_else(|_| "1".to_string())
         .parse::<u64>()
@@ -47,7 +47,8 @@ async fn main() -> Result<()> {
     info!("Connected to Redis successfully");
 
     // Create application state
-    let auth_config = AuthConfig::from_env();
+    let auth_config = AuthConfig::from_env()
+        .map_err(|e| anyhow::anyhow!("Failed to initialize auth config: {}", e))?;
     let state = crate::models::AppState {
         charging_engine,
         auth_config,

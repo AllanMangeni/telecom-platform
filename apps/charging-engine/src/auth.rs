@@ -21,8 +21,13 @@ pub struct AuthConfig {
 }
 
 impl AuthConfig {
-    pub fn from_env() -> Self {
-        let secret = env::var("JWT_SECRET").unwrap_or_else(|_| "default_secret_key_change_in_production".to_string());
+    pub fn from_env() -> Result<Self, String> {
+        let secret = env::var("JWT_SECRET")
+            .map_err(|_| "JWT_SECRET environment variable is required".to_string())?;
+        
+        if secret.len() < 32 {
+            return Err("JWT_SECRET must be at least 32 characters for security".to_string());
+        }
         
         // Parse API keys from comma-separated environment variable
         let api_keys_env = env::var("API_KEYS").unwrap_or_else(|_| String::new());
@@ -32,7 +37,7 @@ impl AuthConfig {
             .filter(|s| !s.is_empty())
             .collect();
         
-        Self { secret, api_keys }
+        Ok(Self { secret, api_keys })
     }
     
     pub fn validate_api_key(&self, api_key: &str) -> bool {
@@ -43,7 +48,7 @@ impl AuthConfig {
 pub fn create_token(user_id: &str, config: &AuthConfig) -> Result<String, StatusCode> {
     let expiration = chrono::Utc::now()
         .checked_add_signed(chrono::Duration::hours(24))
-        .expect("valid timestamp")
+        .ok_or_else(|| StatusCode::INTERNAL_SERVER_ERROR)?
         .timestamp() as usize;
 
     let claims = Claims {
