@@ -8,12 +8,41 @@ use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation}
 use serde::{Deserialize, Serialize};
 use std::env;
 
+/// JWT claims for authentication tokens
+///
+/// # Example
+///
+/// ```rust
+/// use charging_engine::auth::Claims;
+///
+/// let claims = Claims {
+///     sub: "user123".to_string(),
+///     exp: 1234567890,
+/// };
+/// ```
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Claims {
     pub sub: String,
     pub exp: usize,
 }
 
+/// Authentication configuration for JWT and API keys
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use charging_engine::auth::AuthConfig;
+/// use std::env;
+///
+/// # fn main() -> Result<(), String> {
+/// env::set_var("JWT_SECRET", "a_very_secure_secret_at_least_32_chars");
+/// env::set_var("API_KEYS", "key1,key2,key3");
+///
+/// let config = AuthConfig::from_env()?;
+/// assert!(config.validate_api_key("key1"));
+/// # Ok(())
+/// # }
+/// ```
 #[derive(Clone)]
 pub struct AuthConfig {
     pub secret: String,
@@ -21,6 +50,21 @@ pub struct AuthConfig {
 }
 
 impl AuthConfig {
+    /// Load authentication configuration from environment variables
+    ///
+    /// Requires `JWT_SECRET` (at least 32 characters) and optionally `API_KEYS`
+    /// (comma-separated list of valid API keys).
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use charging_engine::auth::AuthConfig;
+    ///
+    /// # fn main() -> Result<(), String> {
+    /// let config = AuthConfig::from_env()?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn from_env() -> Result<Self, String> {
         let secret = env::var("JWT_SECRET")
             .map_err(|_| "JWT_SECRET environment variable is required".to_string())?;

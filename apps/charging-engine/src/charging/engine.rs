@@ -9,6 +9,19 @@ use crate::errors::ChargingResult;
 
 /// ChargingEngine coordinates Redis-backed hot-path state (balances, sessions)
 /// and Postgres-backed configuration (rating plans) via `RatingPlansRepo`.
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use charging_engine::charging::engine::ChargingEngine;
+/// use charging_engine::charging::rating_plans_repo::RatingPlansRepo;
+///
+/// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+/// let plans = RatingPlansRepo::connect("postgres://localhost/db").await?;
+/// let engine = ChargingEngine::new("redis://localhost", plans, 60)?;
+/// # Ok(())
+/// # }
+/// ```
 pub struct ChargingEngine {
     pub(crate) redis_client: redis::Client,
     pub(crate) plans: RatingPlansRepo,

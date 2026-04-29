@@ -2,6 +2,16 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
 
+/// Circuit breaker state
+///
+/// # Example
+///
+/// ```rust
+/// use charging_engine::circuit_breaker::CircuitState;
+///
+/// let state = CircuitState::Closed;
+/// assert_eq!(state, CircuitState::Closed);
+/// ```
 #[derive(Debug, Clone, PartialEq, Copy)]
 pub enum CircuitState {
     Closed,
@@ -9,6 +19,15 @@ pub enum CircuitState {
     HalfOpen,
 }
 
+/// Circuit breaker error type
+///
+/// # Example
+///
+/// ```rust
+/// use charging_engine::circuit_breaker::CircuitBreakerError;
+///
+/// let error: CircuitBreakerError<&str> = CircuitBreakerError::Open;
+/// ```
 #[derive(Debug)]
 pub enum CircuitBreakerError<E> {
     Open,
@@ -26,6 +45,16 @@ impl<E: std::fmt::Display> std::fmt::Display for CircuitBreakerError<E> {
 
 impl<E: std::error::Error + Send + Sync + 'static> std::error::Error for CircuitBreakerError<E> {}
 
+/// Circuit breaker for fault tolerance
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use charging_engine::circuit_breaker::CircuitBreaker;
+/// use std::time::Duration;
+///
+/// let breaker = CircuitBreaker::new(5, Duration::from_secs(60));
+/// ```
 #[derive(Clone)]
 pub struct CircuitBreaker {
     state: Arc<RwLock<CircuitState>>,
@@ -36,6 +65,21 @@ pub struct CircuitBreaker {
 }
 
 impl CircuitBreaker {
+    /// Create a new circuit breaker
+    ///
+    /// # Arguments
+    ///
+    /// * `failure_threshold` - Number of failures before opening the circuit
+    /// * `timeout` - Duration to wait before attempting to close the circuit
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use charging_engine::circuit_breaker::CircuitBreaker;
+    /// use std::time::Duration;
+    ///
+    /// let breaker = CircuitBreaker::new(5, Duration::from_secs(60));
+    /// ```
     pub fn new(failure_threshold: u32, timeout: Duration) -> Self {
         Self {
             state: Arc::new(RwLock::new(CircuitState::Closed)),
