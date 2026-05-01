@@ -11,12 +11,12 @@ import (
 
 // RatePlanHandler handles rate plan API endpoints
 type RatePlanHandler struct {
-	service *rateplan.Service
+	service rateplan.Service
 	logger  *logrus.Logger
 }
 
 // NewRatePlanHandler creates a new rate plan handler
-func NewRatePlanHandler(service *rateplan.Service) *RatePlanHandler {
+func NewRatePlanHandler(service rateplan.Service) *RatePlanHandler {
 	logger := logrus.New()
 	logger.SetLevel(logrus.InfoLevel)
 

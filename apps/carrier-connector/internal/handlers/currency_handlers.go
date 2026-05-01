@@ -14,12 +14,12 @@ import (
 // CurrencyHandler handles currency-related HTTP requests
 type CurrencyHandler struct {
 	billingService  currency.BillingService
-	exchangeService *currency.ExchangeRateService
+	exchangeService currency.ExchangeRateService
 	logger          *logrus.Logger
 }
 
 // NewCurrencyHandler creates a new currency handler
-func NewCurrencyHandler(billingService currency.BillingService, exchangeService *currency.ExchangeRateService, logger *logrus.Logger) *CurrencyHandler {
+func NewCurrencyHandler(billingService currency.BillingService, exchangeService currency.ExchangeRateService, logger *logrus.Logger) *CurrencyHandler {
 	return &CurrencyHandler{
 		billingService:  billingService,
 		exchangeService: exchangeService,
