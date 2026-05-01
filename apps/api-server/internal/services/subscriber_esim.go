@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/nutcas3/telecom-platform/apps/api-server/internal/models"
+	"github.com/sirupsen/logrus"
 )
 
 // provisionESIMProfile provisions an eSIM profile for the subscriber
@@ -47,7 +48,7 @@ func (s *SubscriberService) provisionESIMProfile(ctx context.Context, subscriber
 
 	// Notify AMF of new subscriber
 	if err := s.amfClient.NotifySubscriberUpdate(ctx, subscriber.IMSI, models.SubscriberStatusActive); err != nil {
-		fmt.Printf("Failed to notify AMF of subscriber activation: %v\n", err)
+		logrus.WithError(err).WithField("imsi", subscriber.IMSI).Warn("Failed to notify AMF of subscriber activation")
 	}
 
 	return nil
@@ -81,12 +82,12 @@ func (s *SubscriberService) deactivateESIMProfile(ctx context.Context, subscribe
 
 	// Terminate all sessions
 	if err := s.terminateSubscriberSessions(ctx, subscriber.IMSI); err != nil {
-		fmt.Printf("Failed to terminate sessions: %v\n", err)
+		logrus.WithError(err).WithField("imsi", subscriber.IMSI).Warn("Failed to terminate sessions")
 	}
 
 	// Notify AMF of subscriber deactivation
 	if err := s.amfClient.NotifySubscriberUpdate(ctx, subscriber.IMSI, models.SubscriberStatusInactive); err != nil {
-		fmt.Printf("Failed to notify AMF of subscriber deactivation: %v\n", err)
+		logrus.WithError(err).WithField("imsi", subscriber.IMSI).Warn("Failed to notify AMF of subscriber deactivation")
 	}
 
 	return nil

@@ -8,9 +8,27 @@ resolver = "2"
 [workspace.package]
 version = "1.0.0"
 authors = ["TaaS Team <team@taas-platform.com>"]
-edition = "2021"
-rust-version = "1.94"
+edition = "2024"
+rust-version = "1.95"
 license = "MIT"
+
+[workspace.metadata.cargo-audit]
+# Ignore advisories that are not relevant to this project
+# advisories = []
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all = "warn"
+pedantic = "warn"
+nursery = "warn"
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+unwrap_in_result = "deny"
+unimplemented = "deny"
+todo = "warn"
 
 [workspace.dependencies]
 # Async runtime

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/microcosm-cc/bluemonday"
 	"github.com/nutcas3/telecom-platform/apps/api-server/internal/models"
 	"github.com/nutcas3/telecom-platform/apps/api-server/internal/services"
 )
@@ -81,6 +82,14 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	// Sanitize user input to prevent XSS
+	policy := bluemonday.UGCPolicy()
+	req.Username = policy.Sanitize(req.Username)
+	req.Email = policy.Sanitize(req.Email)
+	req.FirstName = policy.Sanitize(req.FirstName)
+	req.LastName = policy.Sanitize(req.LastName)
+	req.Role = policy.Sanitize(req.Role)
 
 	user, err := h.authService.Register(req.Username, req.Email, req.Password, req.FirstName, req.LastName, req.Role)
 	if err != nil {

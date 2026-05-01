@@ -12,7 +12,7 @@ fn test_validate_bytes_zero() {
 
 #[test]
 fn test_validate_bytes_exceeds_limit() {
-    std::env::set_var("MAX_BYTES_LIMIT", "1000000000000");
+    unsafe { std::env::set_var("MAX_BYTES_LIMIT", "1000000000000"); }
     let result = validate_bytes(2_000_000_000_000); // 2TB
     assert!(result.is_err());
     match result.unwrap_err() {
@@ -75,7 +75,7 @@ fn test_validate_amount_negative() {
 
 #[test]
 fn test_validate_amount_exceeds_limit() {
-    std::env::set_var("MAX_AMOUNT_LIMIT", "10000");
+    unsafe { std::env::set_var("MAX_AMOUNT_LIMIT", "10000"); }
     let result = validate_amount(20_000.0);
     assert!(result.is_err());
     match result.unwrap_err() {

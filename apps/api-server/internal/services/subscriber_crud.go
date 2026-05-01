@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/nutcas3/telecom-platform/apps/api-server/internal/database"
 	"github.com/nutcas3/telecom-platform/apps/api-server/internal/models"
+	"github.com/sirupsen/logrus"
 )
 
 // CreateSubscriber creates a new subscriber with allocated IMSI.
@@ -42,9 +42,10 @@ func (s *SubscriberService) CreateSubscriber(ctx context.Context, req *CreateSub
 	if req.EUICCID != "" {
 		subscriber.EUICCID = req.EUICCID
 		go func() {
-			bgCtx := context.Background()
+			// Use derived context for goroutine to respect parent cancellation
+			bgCtx := context.WithoutCancel(ctx)
 			if err := s.provisionESIMProfile(bgCtx, subscriber.ID); err != nil {
-				fmt.Printf("Failed to provision eSIM profile for subscriber %d: %v\n", subscriber.ID, err)
+				logrus.WithError(err).WithField("subscriber_id", subscriber.ID).Warn("Failed to provision eSIM profile")
 			}
 		}()
 	} else {
@@ -104,24 +105,25 @@ func (s *SubscriberService) UpdateSubscriber(ctx context.Context, id uint, req *
 	return subscriber, nil
 }
 
-// ListSubscribers lists subscribers with pagination and filtering.
+// ListSubscribers lists subscribers with cursor-based pagination and filtering.
 func (s *SubscriberService) ListSubscribers(ctx context.Context, req *ListSubscribersRequest) (*ListSubscribersResponse, error) {
-	dbReq := &database.ListSubscribersRequest{
-		Page:           req.Page,
-		PageSize:       req.PageSize,
-		Status:         string(req.Status),
-		OrganizationID: req.OrganizationID,
-		Search:         req.Search,
+	// Set default limit if not provided
+	limit := req.Limit
+	if limit <= 0 {
+		limit = 20
 	}
-	subscribers, total, err := s.db.ListSubscribers(ctx, dbReq)
+	if limit > 100 {
+		limit = 100
+	}
+
+	subscribers, nextCursor, hasMore, err := s.db.ListSubscribersCursor(ctx, req.Cursor, limit, string(req.Status), req.OrganizationID, req.Search)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list subscribers: %w", err)
 	}
 
 	return &ListSubscribersResponse{
 		Subscribers: subscribers,
-		Total:       total,
-		Page:        req.Page,
-		PageSize:    req.PageSize,
+		NextCursor:  nextCursor,
+		HasMore:     hasMore,
 	}, nil
 }

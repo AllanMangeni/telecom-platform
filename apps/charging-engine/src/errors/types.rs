@@ -1,42 +1,40 @@
 use axum::response::{IntoResponse, Response};
 use axum::http::StatusCode;
 use serde_json::json;
-use std::fmt;
+use thiserror::Error;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Error, Clone)]
 pub enum ChargingError {
+    #[error("Redis connection error: {0}")]
     RedisConnection(String),
+    
+    #[error("Redis operation error: {0}")]
     RedisOperation(String),
+    
+    #[error("Database error: {0}")]
     DatabaseError(String),
+    
+    #[error("Subscriber not found: {0}")]
     SubscriberNotFound(String),
+    
+    #[error("Rating plan not found: {0}")]
     RatingPlanNotFound(String),
+    
+    #[error("Insufficient credit: available={available}, requested={requested}")]
     InsufficientCredit { available: u64, requested: u64 },
+    
+    #[error("Usage blocked: {0}")]
     UsageBlocked(String),
+    
+    #[error("Invalid input: {0}")]
     InvalidInput(String),
+    
+    #[error("Serialization error: {0}")]
     SerializationError(String),
+    
+    #[error("Internal error: {0}")]
     InternalError(String),
 }
-
-impl fmt::Display for ChargingError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            ChargingError::RedisConnection(msg) => write!(f, "Redis connection error: {}", msg),
-            ChargingError::RedisOperation(msg) => write!(f, "Redis operation error: {}", msg),
-            ChargingError::DatabaseError(msg) => write!(f, "Database error: {}", msg),
-            ChargingError::SubscriberNotFound(imsi) => write!(f, "Subscriber not found: {}", imsi),
-            ChargingError::RatingPlanNotFound(plan_id) => write!(f, "Rating plan not found: {}", plan_id),
-            ChargingError::InsufficientCredit { available, requested } => {
-                write!(f, "Insufficient credit: available={}, requested={}", available, requested)
-            }
-            ChargingError::UsageBlocked(reason) => write!(f, "Usage blocked: {}", reason),
-            ChargingError::InvalidInput(msg) => write!(f, "Invalid input: {}", msg),
-            ChargingError::SerializationError(msg) => write!(f, "Serialization error: {}", msg),
-            ChargingError::InternalError(msg) => write!(f, "Internal error: {}", msg),
-        }
-    }
-}
-
-impl std::error::Error for ChargingError {}
 
 impl IntoResponse for ChargingError {
     fn into_response(self) -> Response {

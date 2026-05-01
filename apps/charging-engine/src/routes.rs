@@ -33,11 +33,18 @@ pub fn create_router(state: AppState) -> Router {
         .and_then(|s| s.parse().ok())
         .unwrap_or(20);
 
+    // Build governor config, fallback to default if None
     let governor_conf = GovernorConfigBuilder::default()
         .per_second(requests_per_second as u64)
         .burst_size(burst_size)
         .finish()
-        .unwrap();
+        .unwrap_or_else(|| {
+            GovernorConfigBuilder::default()
+                .per_second(10)
+                .burst_size(20)
+                .finish()
+                .unwrap()
+        });
 
     Router::new()
         // Public routes (no auth required - for packet-gateway integration)

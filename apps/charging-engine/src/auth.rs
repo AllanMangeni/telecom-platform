@@ -8,12 +8,41 @@ use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation}
 use serde::{Deserialize, Serialize};
 use std::env;
 
+/// JWT claims for authentication tokens
+///
+/// # Example
+///
+/// ```rust
+/// use charging_engine::auth::Claims;
+///
+/// let claims = Claims {
+///     sub: "user123".to_string(),
+///     exp: 1234567890,
+/// };
+/// ```
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Claims {
     pub sub: String,
     pub exp: usize,
 }
 
+/// Authentication configuration for JWT and API keys
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use charging_engine::auth::AuthConfig;
+/// use std::env;
+///
+/// # fn main() -> Result<(), String> {
+/// env::set_var("JWT_SECRET", "a_very_secure_secret_at_least_32_chars");
+/// env::set_var("API_KEYS", "key1,key2,key3");
+///
+/// let config = AuthConfig::from_env()?;
+/// assert!(config.validate_api_key("key1"));
+/// # Ok(())
+/// # }
+/// ```
 #[derive(Clone)]
 pub struct AuthConfig {
     pub secret: String,
@@ -21,8 +50,28 @@ pub struct AuthConfig {
 }
 
 impl AuthConfig {
-    pub fn from_env() -> Self {
-        let secret = env::var("JWT_SECRET").unwrap_or_else(|_| "default_secret_key_change_in_production".to_string());
+    /// Load authentication configuration from environment variables
+    ///
+    /// Requires `JWT_SECRET` (at least 32 characters) and optionally `API_KEYS`
+    /// (comma-separated list of valid API keys).
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use charging_engine::auth::AuthConfig;
+    ///
+    /// # fn main() -> Result<(), String> {
+    /// let config = AuthConfig::from_env()?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn from_env() -> Result<Self, String> {
+        let secret = env::var("JWT_SECRET")
+            .map_err(|_| "JWT_SECRET environment variable is required".to_string())?;
+        
+        if secret.len() < 32 {
+            return Err("JWT_SECRET must be at least 32 characters for security".to_string());
+        }
         
         // Parse API keys from comma-separated environment variable
         let api_keys_env = env::var("API_KEYS").unwrap_or_else(|_| String::new());
@@ -32,7 +81,7 @@ impl AuthConfig {
             .filter(|s| !s.is_empty())
             .collect();
         
-        Self { secret, api_keys }
+        Ok(Self { secret, api_keys })
     }
     
     pub fn validate_api_key(&self, api_key: &str) -> bool {
@@ -43,7 +92,7 @@ impl AuthConfig {
 pub fn create_token(user_id: &str, config: &AuthConfig) -> Result<String, StatusCode> {
     let expiration = chrono::Utc::now()
         .checked_add_signed(chrono::Duration::hours(24))
-        .expect("valid timestamp")
+        .ok_or_else(|| StatusCode::INTERNAL_SERVER_ERROR)?
         .timestamp() as usize;
 
     let claims = Claims {

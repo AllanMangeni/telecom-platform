@@ -1,0 +1,38 @@
+api:
+  dashboard: true
+  insecure: true
+
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+  websecure:
+    address: ":443"
+    http:
+      middlewares:
+        - secure-headers@file
+
+providers:
+  docker:
+    exposedByDefault: false
+    network: taas-network
+  file:
+    directory: /traefik/dynamic
+    watch: true
+
+log:
+  level: INFO
+  format: json
+
+accessLog: {}
+
+metrics:
+  prometheus:
+    addEntryPointsLabels: true
+    addServicesLabels: true
+
+ping: {}

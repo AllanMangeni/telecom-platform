@@ -14,6 +14,7 @@ import (
 	"github.com/nutcas3/telecom-platform/apps/carrier-connector/internal/repository"
 	"github.com/nutcas3/telecom-platform/apps/carrier-connector/internal/webhook"
 	"github.com/rs/zerolog"
+	csrf "github.com/utrack/gin-csrf"
 )
 
 func main() {
@@ -35,6 +36,17 @@ func main() {
 	port := handler.GetEnv("PORT", "8080")
 
 	router := gin.Default()
+
+	// Add CSRF protection middleware
+	csrfSecret := os.Getenv("CSRF_SECRET")
+	if csrfSecret == "" {
+		csrfSecret = "change-me-in-production-csrf-secret-32-chars-min"
+		handler.Logger.Warn().Msg("Using default CSRF secret, set CSRF_SECRET environment variable")
+	}
+	router.Use(csrf.Middleware(csrf.Options{
+		Secret: csrfSecret,
+	}))
+
 	router.Use(gin.LoggerWithFormatter(func(p gin.LogFormatterParams) string {
 		return fmt.Sprintf("%s - [%s] \"%s %s %s %d %s \"%s\" %s\"\n",
 			p.ClientIP, p.TimeStamp.Format(time.RFC1123),

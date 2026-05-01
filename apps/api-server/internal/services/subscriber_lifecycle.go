@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/nutcas3/telecom-platform/apps/api-server/internal/models"
+	"github.com/sirupsen/logrus"
 )
 
 // SuspendSubscriber suspends a subscriber and terminates their sessions.
@@ -124,7 +125,7 @@ func (s *SubscriberService) terminateSubscriberSessions(ctx context.Context, ims
 		}
 
 		if err := s.amfClient.TerminateSession(ctx, imsi, "Subscriber terminated"); err != nil {
-			fmt.Printf("Failed to notify AMF for session termination: %v\n", err)
+			logrus.WithError(err).WithField("imsi", imsi).Warn("Failed to notify AMF for session termination")
 		}
 	}
 

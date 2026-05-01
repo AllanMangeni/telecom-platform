@@ -1,0 +1,56 @@
+http:
+  middlewares:
+    secure-headers:
+      headers:
+        customRequestHeaders:
+          X-Forwarded-Proto: "https"
+        customResponseHeaders:
+          X-Content-Type-Options: "nosniff"
+          X-Frame-Options: "DENY"
+          X-XSS-Protection: "1; mode=block"
+          Referrer-Policy: "strict-origin-when-cross-origin"
+          Permissions-Policy: "camera=(), microphone=(), geolocation=()"
+          Content-Security-Policy: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self'; frame-ancestors 'none';"
+
+    # Rate Limiting Middleware (API endpoints)
+    api-ratelimit:
+      rateLimit:
+        average: 100
+        period: "1m"
+        burst: 200
+
+    # Rate Limiting Middleware (Charging endpoints - more restrictive)
+    charging-ratelimit:
+      rateLimit:
+        average: 1000
+        period: "1m"
+        burst: 2000
+
+    # Rate Limiting Middleware (Carrier endpoints - very restrictive)
+    carrier-ratelimit:
+      rateLimit:
+        average: 50
+        period: "1m"
+        burst: 100
+
+    # JWT Authentication Middleware
+    jwt-auth:
+      plugin:
+        JWTAuth:
+          secret: "${JWT_SECRET}"
+          authHeaderName: "Authorization"
+          responseHeaderName: "X-Auth-User"
+          forwardAuth: true
+
+    # Compression Middleware
+    compression:
+      compress:
+        excludedContentTypes:
+          - "text/event-stream"
+          - "application/grpc"
+
+    # Retry Middleware
+    retry-attempts:
+      retry:
+        attempts: 3
+        initialInterval: "100ms"

@@ -28,7 +28,7 @@ type CreditDeductRequest struct {
 func (c *Client) CheckCredit(ip string, bytesRequested uint64) (*CreditCheckResponse, error) {
 	var resp CreditCheckResponse
 	req := CreditCheckRequest{BytesRequested: bytesRequested}
-	if err := c.doPostJSON("/v1/charging/credit/"+ip+"/check", req, &resp); err != nil {
+	if err := c.doPostJSON("/api/v1/charging/credit/"+ip+"/check", req, &resp); err != nil {
 		return nil, err
 	}
 	return &resp, nil
@@ -37,7 +37,7 @@ func (c *Client) CheckCredit(ip string, bytesRequested uint64) (*CreditCheckResp
 // GetBalance gets the current credit balance for a subscriber
 func (c *Client) GetBalance(ip string) (*CreditBalanceResponse, error) {
 	var resp CreditBalanceResponse
-	if err := c.doGetJSON("/v1/charging/credit/"+ip+"/balance", &resp); err != nil {
+	if err := c.doGetJSON("/api/v1/charging/credit/"+ip+"/balance", &resp); err != nil {
 		return nil, err
 	}
 	return &resp, nil
@@ -47,7 +47,7 @@ func (c *Client) GetBalance(ip string) (*CreditBalanceResponse, error) {
 func (c *Client) AddCredit(ip string, bytesToAdd uint64) (*CreditBalanceResponse, error) {
 	var resp CreditBalanceResponse
 	req := CreditAddRequest{BytesToAdd: bytesToAdd}
-	if err := c.doPostJSON("/v1/charging/credit/"+ip+"/add", req, &resp); err != nil {
+	if err := c.doPostJSON("/api/v1/charging/credit/"+ip+"/add", req, &resp); err != nil {
 		return nil, err
 	}
 	return &resp, nil
@@ -57,7 +57,7 @@ func (c *Client) AddCredit(ip string, bytesToAdd uint64) (*CreditBalanceResponse
 func (c *Client) DeductCredit(ip string, bytesUsed uint64) (*CreditBalanceResponse, error) {
 	var resp CreditBalanceResponse
 	req := CreditDeductRequest{BytesUsed: bytesUsed}
-	if err := c.doPostJSON("/v1/charging/credit/"+ip+"/deduct", req, &resp); err != nil {
+	if err := c.doPostJSON("/api/v1/charging/credit/"+ip+"/deduct", req, nil); err != nil {
 		return nil, err
 	}
 	return &resp, nil

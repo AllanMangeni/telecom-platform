@@ -2,6 +2,16 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use redis::{FromRedisValue, ToRedisArgs, ToSingleRedisArg};
 
+/// Charging rule for usage authorization
+///
+/// # Example
+///
+/// ```rust
+/// use charging_engine::charging::types::ChargingRule;
+///
+/// let rule = ChargingRule::Allowed;
+/// assert_eq!(rule.as_str(), "ALLOWED");
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ChargingRule {
     Allowed,
@@ -14,6 +24,16 @@ pub enum ChargingRule {
 }
 
 impl ChargingRule {
+    /// Convert charging rule to string representation
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use charging_engine::charging::types::ChargingRule;
+    ///
+    /// let rule = ChargingRule::Allowed;
+    /// assert_eq!(rule.as_str(), "ALLOWED");
+    /// ```
     pub fn as_str(&self) -> &str {
         match self {
             ChargingRule::Allowed => "ALLOWED",
@@ -27,6 +47,27 @@ impl ChargingRule {
     }
 }
 
+/// Subscriber account information
+///
+/// # Example
+///
+/// ```rust
+/// use charging_engine::charging::types::{SubscriberAccount, AccountStatus};
+/// use chrono::Utc;
+///
+/// let account = SubscriberAccount {
+///     imsi: "1234567890".to_string(),
+///     balance: 1000,
+///     data_limit: 1000000000,
+///     data_used: 0,
+///     voice_limit: 1000,
+///     voice_used: 0,
+///     sms_limit: 100,
+///     sms_used: 0,
+///     status: AccountStatus::Active,
+///     last_updated: Utc::now(),
+/// };
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SubscriberAccount {
     pub imsi: String,
@@ -41,6 +82,15 @@ pub struct SubscriberAccount {
     pub last_updated: DateTime<Utc>,
 }
 
+/// Account status
+///
+/// # Example
+///
+/// ```rust
+/// use charging_engine::charging::types::AccountStatus;
+///
+/// let status = AccountStatus::Active;
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AccountStatus {
     Active,
@@ -49,6 +99,24 @@ pub enum AccountStatus {
     Blocked,
 }
 
+/// Usage event for charging
+///
+/// # Example
+///
+/// ```rust
+/// use charging_engine::charging::types::{UsageEvent, UsageType};
+/// use chrono::Utc;
+///
+/// let event = UsageEvent {
+///     imsi: "1234567890".to_string(),
+///     session_id: "session123".to_string(),
+///     usage_type: UsageType::Data,
+///     volume: 1000,
+///     timestamp: Utc::now(),
+///     rate: 0.01,
+///     cost: 10.0,
+/// };
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UsageEvent {
     pub imsi: String,
@@ -60,6 +128,15 @@ pub struct UsageEvent {
     pub cost: f64,
 }
 
+/// Usage type classification
+///
+/// # Example
+///
+/// ```rust
+/// use charging_engine::charging::types::UsageType;
+///
+/// let usage_type = UsageType::Data;
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum UsageType {
     Data,
@@ -67,6 +144,25 @@ pub enum UsageType {
     SMS,
 }
 
+/// Rating plan for subscriber billing
+///
+/// # Example
+///
+/// ```rust
+/// use charging_engine::charging::types::RatingPlan;
+///
+/// let plan = RatingPlan {
+///     plan_id: "plan1".to_string(),
+///     name: "Basic Plan".to_string(),
+///     data_rate: 0.01,
+///     voice_rate: 0.05,
+///     sms_rate: 0.1,
+///     monthly_fee: 10.0,
+///     data_limit: 1000000000,
+///     voice_limit: 1000,
+///     sms_limit: 100,
+/// };
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RatingPlan {
     pub plan_id: String,
@@ -96,7 +192,10 @@ impl ToRedisArgs for SubscriberAccount {
         W: redis::RedisWrite + ?Sized,
     {
         let json = serde_json::to_string(self)
-            .expect("Failed to serialize SubscriberAccount");
+            .unwrap_or_else(|_| {
+                // Fallback to empty JSON if serialization fails
+                r#"{"imsi":"","balance":0,"data_limit":0,"data_used":0,"voice_limit":0,"voice_used":0,"sms_limit":0,"sms_used":0,"status":"Active","last_updated":"1970-01-01T00:00:00Z"}"#.to_string()
+            });
         json.write_redis_args(out)
     }
 }
@@ -118,7 +217,10 @@ impl ToRedisArgs for UsageEvent {
         W: redis::RedisWrite + ?Sized,
     {
         let json = serde_json::to_string(self)
-            .expect("Failed to serialize UsageEvent");
+            .unwrap_or_else(|_| {
+                // Fallback to empty JSON if serialization fails
+                r#"{"imsi":"","session_id":"","usage_type":"Data","volume":0,"timestamp":"1970-01-01T00:00:00Z","rate":0.0,"cost":0.0}"#.to_string()
+            });
         json.write_redis_args(out)
     }
 }

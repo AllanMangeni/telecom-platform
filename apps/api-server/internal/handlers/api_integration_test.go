@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -68,7 +69,11 @@ func setupTest(t *testing.T) *TestSetup {
 
 	for _, user := range testUsers {
 		// Hash the password properly for testing
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
+		testPassword := os.Getenv("TEST_PASSWORD")
+		if testPassword == "" {
+			testPassword = "default_test_password_change_me"
+		}
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(testPassword), bcrypt.DefaultCost)
 		require.NoError(t, err)
 		user.Password = string(hashedPassword)
 		err = db.Create(user).Error

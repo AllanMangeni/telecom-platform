@@ -221,12 +221,10 @@ impl crate::charging::ChargingEngine {
         // Try to read from /proc/self/status for Linux systems
         if let Ok(status) = fs::read_to_string("/proc/self/status") {
             for line in status.lines() {
-                if line.starts_with("VmRSS:") {
-                    if let Some(memory_str) = line.split_whitespace().nth(1) {
-                        if let Ok(memory_kb) = memory_str.parse::<u64>() {
-                            return Ok(memory_kb * 1024); // Convert KB to bytes
-                        }
-                    }
+                if line.starts_with("VmRSS:")
+                    && let Some(memory_str) = line.split_whitespace().nth(1)
+                    && let Ok(memory_kb) = memory_str.parse::<u64>() {
+                        return Ok(memory_kb * 1024); // Convert KB to bytes
                 }
             }
         }
@@ -254,13 +252,11 @@ impl crate::charging::ChargingEngine {
         
         // Parse memory usage from Redis info
         for line in info.lines() {
-            if line.starts_with("used_memory:") {
-                if let Some(memory_str) = line.split(':').nth(1) {
-                    if let Ok(memory_bytes) = memory_str.parse::<u64>() {
-                        return Ok(memory_bytes);
-                    }
+            if line.starts_with("used_memory:")
+                && let Some(memory_str) = line.split(':').nth(1)
+                && let Ok(memory_bytes) = memory_str.parse::<u64>() {
+                    return Ok(memory_bytes);
                 }
-            }
         }
         
         // Fallback to estimate

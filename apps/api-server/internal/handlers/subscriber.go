@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/microcosm-cc/bluemonday"
 	"github.com/nutcas3/telecom-platform/apps/api-server/internal/models"
 	"github.com/nutcas3/telecom-platform/apps/api-server/internal/services"
 )
@@ -43,6 +44,21 @@ func (h *SubscriberHandler) CreateSubscriber(c *gin.Context) {
 		return
 	}
 
+	// Sanitize user input to prevent XSS
+	policy := bluemonday.UGCPolicy()
+	if req.FirstName != "" {
+		req.FirstName = policy.Sanitize(req.FirstName)
+	}
+	if req.LastName != "" {
+		req.LastName = policy.Sanitize(req.LastName)
+	}
+	if req.Email != "" {
+		req.Email = policy.Sanitize(req.Email)
+	}
+	if req.MSISDN != "" {
+		req.MSISDN = policy.Sanitize(req.MSISDN)
+	}
+
 	subscriber, err := h.subscriberService.CreateSubscriber(c.Request.Context(), &req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, ErrorResponse{
@@ -52,7 +68,20 @@ func (h *SubscriberHandler) CreateSubscriber(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, subscriber)
+	// Add HATEOAS links
+	baseURL := c.Request.Host
+	if c.Request.TLS != nil {
+		baseURL = "https://" + baseURL
+	} else {
+		baseURL = "http://" + baseURL
+	}
+
+	subscriberWithLinks := models.SubscriberWithLinks{
+		Subscriber: *subscriber,
+		Links:      models.NewSubscriberLinks(baseURL, subscriber),
+	}
+
+	c.JSON(http.StatusCreated, subscriberWithLinks)
 }
 
 // GetSubscriber retrieves a subscriber by ID
@@ -85,7 +114,20 @@ func (h *SubscriberHandler) GetSubscriber(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, subscriber)
+	// Add HATEOAS links
+	baseURL := c.Request.Host
+	if c.Request.TLS != nil {
+		baseURL = "https://" + baseURL
+	} else {
+		baseURL = "http://" + baseURL
+	}
+
+	subscriberWithLinks := models.SubscriberWithLinks{
+		Subscriber: *subscriber,
+		Links:      models.NewSubscriberLinks(baseURL, subscriber),
+	}
+
+	c.JSON(http.StatusOK, subscriberWithLinks)
 }
 
 // GetSubscriberByIMSI retrieves a subscriber by IMSI
@@ -146,6 +188,21 @@ func (h *SubscriberHandler) UpdateSubscriber(c *gin.Context) {
 		return
 	}
 
+	// Sanitize user input to prevent XSS
+	policy := bluemonday.UGCPolicy()
+	if req.FirstName != nil && *req.FirstName != "" {
+		sanitized := policy.Sanitize(*req.FirstName)
+		req.FirstName = &sanitized
+	}
+	if req.LastName != nil && *req.LastName != "" {
+		sanitized := policy.Sanitize(*req.LastName)
+		req.LastName = &sanitized
+	}
+	if req.Email != nil && *req.Email != "" {
+		sanitized := policy.Sanitize(*req.Email)
+		req.Email = &sanitized
+	}
+
 	subscriber, err := h.subscriberService.UpdateSubscriber(c.Request.Context(), uint(id), &req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, ErrorResponse{
@@ -172,16 +229,15 @@ func (h *SubscriberHandler) UpdateSubscriber(c *gin.Context) {
 // @Failure 500 {object} ErrorResponse
 // @Router /api/v1/subscribers [get]
 func (h *SubscriberHandler) ListSubscribers(c *gin.Context) {
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
 
-	if pageSize > 100 {
-		pageSize = 100
+	if limit > 100 {
+		limit = 100
 	}
 
 	req := &services.ListSubscribersRequest{
-		Page:           page,
-		PageSize:       pageSize,
+		Cursor:         c.Query("cursor"),
+		Limit:          limit,
 		Status:         models.SubscriberStatus(c.Query("status")),
 		OrganizationID: c.Query("organization_id"),
 		Search:         c.Query("search"),
@@ -196,7 +252,30 @@ func (h *SubscriberHandler) ListSubscribers(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, response)
+	// Add HATEOAS links
+	baseURL := c.Request.Host
+	if c.Request.TLS != nil {
+		baseURL = "https://" + baseURL
+	} else {
+		baseURL = "http://" + baseURL
+	}
+
+	subscribersWithLinks := make([]models.SubscriberWithLinks, len(response.Subscribers))
+	for i, subscriber := range response.Subscribers {
+		subscribersWithLinks[i] = models.SubscriberWithLinks{
+			Subscriber: subscriber,
+			Links:      models.NewSubscriberLinks(baseURL, &subscriber),
+		}
+	}
+
+	listResponse := models.SubscriberListWithLinks{
+		Subscribers: subscribersWithLinks,
+		NextCursor:  response.NextCursor,
+		HasMore:     response.HasMore,
+		Links:       models.NewSubscriberListLinks(baseURL, response.NextCursor, req.Limit, response.HasMore),
+	}
+
+	c.JSON(http.StatusOK, listResponse)
 }
 
 // SuspendSubscriber suspends a subscriber

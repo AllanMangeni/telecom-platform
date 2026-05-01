@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"os"
 	"time"
 
@@ -125,9 +126,7 @@ func (mq *MessageQueue) PublishProfileEvent(eventType string, profileID string, 
 		},
 	}
 
-	for k, v := range payload {
-		msg.Payload[k] = v
-	}
+	maps.Copy(msg.Payload, payload)
 
 	return mq.Publish("profile-events", msg)
 }

@@ -1,13 +1,17 @@
 package es2
 
 import (
+	"slices"
 	"bytes"
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
+	"net"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/nutcas3/telecom-platform/apps/carrier-connector/internal/config"
@@ -36,6 +40,32 @@ func NewES2Client(cfg *config.ES2Config) *ES2Client {
 		maxRetries: 3,
 		retryDelay: 1 * time.Second,
 	}
+}
+
+// validateURL prevents SSRF by checking if URL is safe to access
+func (c *ES2Client) validateURL(urlStr string) error {
+	u, err := url.Parse(urlStr)
+	if err != nil {
+		return fmt.Errorf("invalid URL: %w", err)
+	}
+
+	host := u.Hostname()
+	ip := net.ParseIP(host)
+
+	// Block private IPs, loopback, and link-local addresses
+	if ip != nil && (ip.IsPrivate() || ip.IsLoopback() || ip.IsLinkLocalUnicast()) {
+		return errors.New("access to private IP addresses is not allowed")
+	}
+
+	// Whitelist allowed ES2/SMDP domains (should be production SM-DP+ servers)
+	allowedDomains := []string{"smdp.example.com", "es2plus.example.com", "smdp.carrier.com"}
+	allowed := slices.Contains(allowedDomains, host)
+
+	if !allowed {
+		return fmt.Errorf("domain %s is not in allowed ES2 domains list", host)
+	}
+
+	return nil
 }
 
 // retryableError checks if an error is retryable
@@ -96,6 +126,11 @@ func (c *ES2Client) executeWithRetry(ctx context.Context, req *http.Request) (*h
 func (c *ES2Client) DownloadProfile(ctx context.Context, req *DownloadProfileRequest) (*DownloadProfileResponse, error) {
 	url := fmt.Sprintf("%s/es2plus/downloadProfile", c.baseURL)
 
+	// Validate URL to prevent SSRF
+	if err := c.validateURL(url); err != nil {
+		return nil, fmt.Errorf("SSRF protection: %w", err)
+	}
+
 	payload, err := json.Marshal(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
@@ -128,6 +163,11 @@ func (c *ES2Client) DownloadProfile(ctx context.Context, req *DownloadProfileReq
 
 func (c *ES2Client) GetProfileStatus(ctx context.Context, req *GetProfileStatusRequest) (*GetProfileStatusResponse, error) {
 	url := fmt.Sprintf("%s/es2plus/getProfileStatus", c.baseURL)
+
+	// Validate URL to prevent SSRF
+	if err := c.validateURL(url); err != nil {
+		return nil, fmt.Errorf("SSRF protection: %w", err)
+	}
 
 	payload, err := json.Marshal(req)
 	if err != nil {

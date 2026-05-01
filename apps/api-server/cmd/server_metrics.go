@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"log"
 	"math"
 	"os"
 	"strconv"
@@ -12,6 +11,7 @@ import (
 	"github.com/nutcas3/telecom-platform/apps/api-server/internal/database"
 	"github.com/nutcas3/telecom-platform/apps/api-server/internal/metrics"
 	"github.com/nutcas3/telecom-platform/apps/api-server/internal/models"
+	"github.com/sirupsen/logrus"
 )
 
 // startMetricsCollection periodically collects and stores metrics.
@@ -45,7 +45,7 @@ func collectMetrics(ctx context.Context, mc *metrics.MetricsCollectorWithTimeSer
 
 	if ts := mc.GetTimeSeriesStorage(); ts != nil {
 		if err := ts.StoreSystemMetrics(ctx, systemMetrics); err != nil {
-			log.Printf("Failed to store system metrics: %v", err)
+			logrus.WithError(err).Error("Failed to store system metrics")
 		}
 	}
 }
@@ -56,17 +56,17 @@ func getSubscriberStats(db *database.Database) (total, active, suspended int) {
 	defer cancel()
 	var totalCount, activeCount, suspendedCount int64
 	if err := db.DB.WithContext(ctx).Model(&models.Subscriber{}).Count(&totalCount).Error; err != nil {
-		log.Printf("Error counting total subscribers: %v", err)
+		logrus.WithError(err).Error("Error counting total subscribers")
 		return 0, 0, 0
 	}
 	if err := db.DB.WithContext(ctx).Model(&models.Subscriber{}).Where("status = ?", "active").Count(&activeCount).Error; err != nil {
-		log.Printf("Error counting active subscribers: %v", err)
+		logrus.WithError(err).Error("Error counting active subscribers")
 		return int(totalCount), 0, 0
 	}
 	if err := db.DB.WithContext(ctx).Model(&models.Subscriber{}).
 		Where("status IN ?", []string{"suspended", "deactivated", "blocked"}).
 		Count(&suspendedCount).Error; err != nil {
-		log.Printf("Error counting suspended subscribers: %v", err)
+		logrus.WithError(err).Error("Error counting suspended subscribers")
 		return int(totalCount), int(activeCount), 0
 	}
 	return int(totalCount), int(activeCount), int(suspendedCount)
@@ -82,7 +82,7 @@ func getActiveSessionsCount(db *database.Database) int {
 		"status IN ? AND end_time IS NULL",
 		[]string{"active", "connected", "established"},
 	).Count(&count).Error; err != nil {
-		log.Printf("Error counting active sessions: %v", err)
+		logrus.WithError(err).Error("Error counting active sessions")
 		return 0
 	}
 
@@ -93,7 +93,7 @@ func getActiveSessionsCount(db *database.Database) int {
 func getCPUUsage() float64 {
 	data, err := os.ReadFile("/proc/stat")
 	if err != nil {
-		log.Printf("Error reading /proc/stat: %v", err)
+		logrus.WithError(err).Error("Error reading /proc/stat")
 		return 0
 	}
 
@@ -130,7 +130,7 @@ func getCPUUsage() float64 {
 func getMemoryUsage() float64 {
 	data, err := os.ReadFile("/proc/meminfo")
 	if err != nil {
-		log.Printf("Error reading /proc/meminfo: %v", err)
+		logrus.WithError(err).Error("Error reading /proc/meminfo")
 		return 0
 	}
 
@@ -171,7 +171,7 @@ func getNetworkTX() int64 { return readNetworkStat(9) }
 func readNetworkStat(fieldIdx int) int64 {
 	data, err := os.ReadFile("/proc/net/dev")
 	if err != nil {
-		log.Printf("Error reading /proc/net/dev: %v", err)
+		logrus.WithError(err).Error("Error reading /proc/net/dev")
 		return 0
 	}
 

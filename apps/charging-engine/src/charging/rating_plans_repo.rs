@@ -125,9 +125,13 @@ impl RatingPlansRepo {
             .await
             .map_err(|e| crate::errors::ChargingError::DatabaseError(e.to_string()))?;
 
-            let mut out = HashMap::with_capacity(rows.len());
-            for row in rows {
-                let plan = row_to_plan(row);
+            let plans = rows
+                .into_iter()
+                .map(|row| row_to_plan(row))
+                .collect::<Vec<_>>();
+
+            let mut out = HashMap::new();
+            for plan in plans {
                 out.insert(plan.plan_id.clone(), plan);
             }
             Ok(out)
@@ -236,8 +240,19 @@ fn row_to_plan(row: sqlx::postgres::PgRow) -> RatingPlan {
 
 /// Run Goose migrations by calling the goose binary.
 /// This ensures both Go and Rust services use the same migration system.
+/// Changes to the repo root directory to find the migrations folder.
 async fn run_migrations(database_url: &str) -> Result<(), Box<dyn std::error::Error>> {
+    use std::process::Command;
+    
+    // Change to repo root to find migrations directory
+    let manifest_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let repo_root = manifest_dir
+        .parent()
+        .and_then(|p| p.parent())
+        .ok_or("Failed to determine repo root")?;
+    
     let output = Command::new("goose")
+        .current_dir(&repo_root)
         .args(["postgres", database_url, "up", "migrations"])
         .output()?;
 

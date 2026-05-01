@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/nutcas3/telecom-platform/apps/api-server/internal/models"
 	"gorm.io/gorm"
@@ -57,6 +58,52 @@ func (d *Database) ListSubscribers(ctx context.Context, req *ListSubscribersRequ
 	offset := (req.Page - 1) * req.PageSize
 	err := query.Preload("Plan").Offset(offset).Limit(req.PageSize).Order("created_at DESC").Find(&subscribers).Error
 	return subscribers, total, err
+}
+
+// ListSubscribersCursor implements cursor-based pagination for subscribers
+func (d *Database) ListSubscribersCursor(ctx context.Context, cursor string, limit int, status, organizationID, search string) ([]models.Subscriber, string, bool, error) {
+	var subscribers []models.Subscriber
+
+	query := d.DB.WithContext(ctx).Model(&models.Subscriber{})
+
+	// Apply filters
+	if status != "" {
+		query = query.Where("status = ?", status)
+	}
+	if organizationID != "" {
+		query = query.Where("organization_id = ?", organizationID)
+	}
+	if search != "" {
+		query = query.Where("first_name ILIKE ? OR last_name ILIKE ? OR email ILIKE ? OR msisdn ILIKE ?",
+			"%"+search+"%", "%"+search+"%", "%"+search+"%", "%"+search+"%")
+	}
+
+	// Apply cursor-based pagination (using ID as cursor)
+	if cursor != "" {
+		query = query.Where("id < ?", cursor)
+	}
+
+	// Order by ID descending and apply limit
+	query = query.Order("id DESC").Limit(limit + 1) // +1 to check if there are more results
+
+	err := query.Preload("Plan").Find(&subscribers).Error
+	if err != nil {
+		return nil, "", false, err
+	}
+
+	// Determine if there are more results
+	hasMore := len(subscribers) > limit
+	if hasMore {
+		subscribers = subscribers[:limit] // Remove the extra item
+	}
+
+	// Generate next cursor
+	var nextCursor string
+	if len(subscribers) > 0 {
+		nextCursor = fmt.Sprintf("%d", subscribers[len(subscribers)-1].ID)
+	}
+
+	return subscribers, nextCursor, hasMore, nil
 }
 
 func (d *Database) GetActiveSessionsByIMSI(ctx context.Context, imsi models.IMSI) ([]models.Session, error) {

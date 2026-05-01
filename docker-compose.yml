@@ -1,4 +1,26 @@
 services:
+  traefik:
+    image: traefik:v3.0
+    container_name: taas-traefik
+    restart: unless-stopped
+    command:
+      - "--configFile=/traefik/traefik.yml"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"  # Traefik dashboard
+    volumes:
+      - ./traefik:/traefik
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      JWT_SECRET: "${JWT_SECRET:-change-me-in-production-jwt-secret-32-chars-min}"
+    networks:
+      - taas-network
+    depends_on:
+      - api-server
+      - charging-engine
+      - carrier-connector
+
   mongodb:
     image: mongo:7.0
     container_name: taas-mongodb
@@ -185,8 +207,8 @@ services:
       dockerfile: deployments/docker/api-server.Dockerfile
     container_name: taas-api-server
     restart: unless-stopped
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     environment:
       MONGODB_URI: mongodb://admin:changeme@mongodb:27017/free5gc
       REDIS_URI: redis://redis:6379
@@ -197,6 +219,17 @@ services:
       - redis
     networks:
       - taas-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api-server.rule=Host(`api.telecom.com`) && PathPrefix(`/api/v1`)"
+      - "traefik.http.routers.api-server.entrypoints=websecure"
+      - "traefik.http.routers.api-server.tls=true"
+      - "traefik.http.routers.api-server.middlewares=api-ratelimit,secure-headers,compression"
+      - "traefik.http.services.api-server.loadbalancer.server.port=8000"
+      - "traefik.http.routers.api-server-docs.rule=Host(`api.telecom.com`) && Path(`/api/v1/swagger`) || Path(`/api/v1/swagger/*`)"
+      - "traefik.http.routers.api-server-docs.entrypoints=websecure"
+      - "traefik.http.routers.api-server-docs.tls=true"
+      - "traefik.http.routers.api-server-docs.middlewares=secure-headers,compression"
 
   carrier-connector:
     build:
@@ -204,11 +237,20 @@ services:
       dockerfile: deployments/docker/carrier-connector.Dockerfile
     container_name: taas-carrier-connector
     restart: unless-stopped
+    expose:
+      - "8081"
     environment:
       SMDP_URL: https://smdp.example.com
       SMDP_API_KEY: your-api-key
     networks:
       - taas-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.carrier-connector.rule=Host(`api.telecom.com`) && PathPrefix(`/v1/es2`) || PathPrefix(`/v1/carrier`)"
+      - "traefik.http.routers.carrier-connector.entrypoints=websecure"
+      - "traefik.http.routers.carrier-connector.tls=true"
+      - "traefik.http.routers.carrier-connector.middlewares=carrier-ratelimit,secure-headers,compression,retry-attempts"
+      - "traefik.http.services.carrier-connector.loadbalancer.server.port=8081"
 
   charging-engine:
     build:
@@ -216,8 +258,8 @@ services:
       dockerfile: deployments/docker/charging-engine.Dockerfile
     container_name: taas-charging-engine
     restart: unless-stopped
-    ports:
-      - "8080:8080"
+    expose:
+      - "8080"
     environment:
       REDIS_URI: redis://redis:6379
       SERVER_PORT: 8080
@@ -226,6 +268,46 @@ services:
       - redis
     networks:
       - taas-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.charging-engine.rule=Host(`api.telecom.com`) && PathPrefix(`/v1/credit`) || PathPrefix(`/v1/usage`) || PathPrefix(`/v1/rating-plans`)"
+      - "traefik.http.routers.charging-engine.entrypoints=websecure"
+      - "traefik.http.routers.charging-engine.tls=true"
+      - "traefik.http.routers.charging-engine.middlewares=charging-ratelimit,secure-headers,compression,retry-attempts"
+      - "traefik.http.services.charging-engine.loadbalancer.server.port=8080"
+      - "traefik.http.routers.charging-engine-health.rule=Host(`api.telecom.com`) && Path(`/v1/health`)"
+      - "traefik.http.routers.charging-engine-health.entrypoints=websecure"
+      - "traefik.http.routers.charging-engine-health.tls=true"
+      - "traefik.http.routers.charging-engine-health.middlewares=secure-headers"
+
+  packet-gateway:
+    build:
+      context: .
+      dockerfile: deployments/docker/packet-gateway.Dockerfile
+    container_name: taas-packet-gateway
+    restart: unless-stopped
+    expose:
+      - "8083"
+    environment:
+      REDIS_URL: redis://redis:6379
+      CHARGING_ENGINE_URL: http://charging-engine:8080
+      HEALTH_PORT: 8083
+    depends_on:
+      - redis
+      - charging-engine
+    networks:
+      - taas-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.packet-gateway.rule=Host(`api.telecom.com`) && PathPrefix(`/v1/packet`) || PathPrefix(`/v1/gateway`)"
+      - "traefik.http.routers.packet-gateway.entrypoints=websecure"
+      - "traefik.http.routers.packet-gateway.tls=true"
+      - "traefik.http.routers.packet-gateway.middlewares=charging-ratelimit,secure-headers,compression,retry-attempts"
+      - "traefik.http.services.packet-gateway.loadbalancer.server.port=8083"
+      - "traefik.http.routers.packet-gateway-health.rule=Host(`api.telecom.com`) && Path(`/health`)"
+      - "traefik.http.routers.packet-gateway-health.entrypoints=websecure"
+      - "traefik.http.routers.packet-gateway-health.tls=true"
+      - "traefik.http.routers.packet-gateway-health.middlewares=secure-headers"
 
   web-dashboard:
     build:
@@ -236,7 +318,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      NEXT_PUBLIC_API_URL: http://api-server:8000
+      NEXT_PUBLIC_API_URL: https://api.telecom.com
     depends_on:
       - api-server
     networks:

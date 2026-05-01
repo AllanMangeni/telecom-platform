@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os/exec"
+	"path/filepath"
 	"time"
 
 	"gorm.io/driver/postgres"
@@ -58,8 +59,13 @@ func NewPostgresProfileStore(dsn string) (*PostgresProfileStore, error) {
 }
 
 // runMigrations executes Goose migrations using the goose binary
+// Changes to the repo root directory to find the migrations folder
 func runMigrations(dsn string) error {
+	// Get the repo root directory (go up from apps/carrier-connector)
+	repoRoot := filepath.Join("..", "..")
+
 	cmd := exec.Command("goose", "postgres", dsn, "up", "migrations")
+	cmd.Dir = repoRoot
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("goose migration failed: %w, output: %s", err, string(output))

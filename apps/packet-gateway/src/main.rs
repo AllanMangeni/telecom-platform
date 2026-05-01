@@ -94,7 +94,7 @@ async fn main() -> Result<()> {
     #[cfg(feature = "ebpf")]
     let (ebpf_manager, ebpf_attached) = {
         // Initialize eBPF manager
-        let mut ebpf_manager = EbpfManager::new(args.interface.clone()).await
+        let mut ebpf_manager = EbpfManager::new(&args.interface).await
             .context("Failed to initialize eBPF manager")?;
         
         // Load and attach XDP program
@@ -123,7 +123,7 @@ async fn main() -> Result<()> {
     info!("Packet gateway running. Press Ctrl+C to exit.");
     
     // Start HTTP health check server
-    let redis_client_arc = Arc::new(redis_client.clone());
+    let redis_client_arc = Arc::new(redis_client);
     let ebpf_attached_clone = Arc::clone(&ebpf_attached);
     
     #[cfg(feature = "ebpf")]
@@ -133,9 +133,9 @@ async fn main() -> Result<()> {
 
     // Create config state
     let config = PacketGatewayConfig {
-        interface: args.interface.clone(),
-        redis_url: args.redis_url.clone(),
-        charging_engine_url: args.charging_engine_url.clone(),
+        interface: args.interface,
+        redis_url: args.redis_url,
+        charging_engine_url: args.charging_engine_url,
         sync_interval: args.sync_interval,
         health_port: args.health_port,
     };
@@ -215,7 +215,7 @@ async fn main() -> Result<()> {
                                         s.ip & 0xFF
                                     );
                                     let session_id = format!("session-{}", ip_str);
-                                    (ip_str.clone(), session_id, s.bytes)
+                                    (ip_str, session_id, s.bytes)
                                 })
                                 .collect();
                             

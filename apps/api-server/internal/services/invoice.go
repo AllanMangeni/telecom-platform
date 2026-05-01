@@ -7,6 +7,7 @@ import (
 
 	"github.com/nutcas3/telecom-platform/apps/api-server/internal/database"
 	"github.com/nutcas3/telecom-platform/apps/api-server/internal/models"
+	"github.com/sirupsen/logrus"
 )
 
 // InvoiceService handles invoice generation and management
@@ -100,8 +101,9 @@ func (s *InvoiceService) SendInvoice(ctx context.Context, invoiceID uint) error 
 		return fmt.Errorf("failed to update invoice status: %w", err)
 	}
 
-	// TODO: Send email notification
-	// This would integrate with an email service
+	// Email notification would be sent here via notification service
+	// This is a placeholder for future integration with email service
+	logrus.WithField("invoice_id", invoice.ID).Info("Invoice created - email notification pending")
 
 	return nil
 }
