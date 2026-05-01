@@ -1,4 +1,4 @@
-package rateplan
+package services
 
 import (
 	"context"
@@ -6,10 +6,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/nutcas3/telecom-platform/apps/carrier-connector/internal/repository"
 	"github.com/sirupsen/logrus"
 )
 
-func (s *Service) SubscribeToPlan(ctx context.Context, req *SubscribeRequest) (*RatePlanSubscription, error) {
+func (s *Service) SubscribeToPlan(ctx context.Context, req *repository.SubscribeRequest) (*repository.RatePlanSubscription, error) {
 	if err := s.validateSubscribeRequest(req); err != nil {
 		return nil, fmt.Errorf("validation failed: %w", err)
 	}
@@ -19,7 +20,7 @@ func (s *Service) SubscribeToPlan(ctx context.Context, req *SubscribeRequest) (*
 		return nil, err
 	}
 
-	if !plan.IsActive || plan.Status != PlanStatusActive {
+	if !plan.IsActive || plan.Status != repository.PlanStatusActive {
 		return nil, fmt.Errorf("rate plan is not available for subscription")
 	}
 
@@ -33,11 +34,11 @@ func (s *Service) SubscribeToPlan(ctx context.Context, req *SubscribeRequest) (*
 	}
 
 	// Create subscription
-	subscription := &RatePlanSubscription{
+	subscription := &repository.RatePlanSubscription{
 		ID:               uuid.New().String(),
 		ProfileID:        req.ProfileID,
 		RatePlanID:       req.RatePlanID,
-		Status:           SubscriptionStatusActive,
+		Status:           repository.SubscriptionStatusActive,
 		StartedAt:        time.Now(),
 		BillingCycle:     plan.BillingCycle,
 		NextBillingDate:  s.calculateNextBillingDate(plan.BillingCycle, time.Now()),
@@ -62,7 +63,7 @@ func (s *Service) SubscribeToPlan(ctx context.Context, req *SubscribeRequest) (*
 }
 
 // GetSubscription retrieves a subscription by ID
-func (s *Service) GetSubscription(ctx context.Context, id string) (*RatePlanSubscription, error) {
+func (s *Service) GetSubscription(ctx context.Context, id string) (*repository.RatePlanSubscription, error) {
 	subscription, err := s.repo.GetSubscription(ctx, id)
 	if err != nil {
 		s.logger.WithError(err).WithField("subscription_id", id).Error("Failed to get subscription")
@@ -73,7 +74,7 @@ func (s *Service) GetSubscription(ctx context.Context, id string) (*RatePlanSubs
 }
 
 // UpdateSubscription updates an existing subscription
-func (s *Service) UpdateSubscription(ctx context.Context, subscription *RatePlanSubscription) (*RatePlanSubscription, error) {
+func (s *Service) UpdateSubscription(ctx context.Context, subscription *repository.RatePlanSubscription) (*repository.RatePlanSubscription, error) {
 	if err := s.repo.UpdateSubscription(ctx, subscription); err != nil {
 		s.logger.WithError(err).Error("Failed to update subscription")
 		return nil, err
@@ -90,12 +91,12 @@ func (s *Service) CancelSubscription(ctx context.Context, subscriptionID string,
 		return err
 	}
 
-	if subscription.Status != SubscriptionStatusActive {
+	if subscription.Status != repository.SubscriptionStatusActive {
 		return fmt.Errorf("subscription is not active")
 	}
 
 	now := time.Now()
-	subscription.Status = SubscriptionStatusCancelled
+	subscription.Status = repository.SubscriptionStatusCancelled
 	subscription.EndedAt = &now
 	subscription.UpdatedAt = now
 
@@ -114,7 +115,7 @@ func (s *Service) CancelSubscription(ctx context.Context, subscriptionID string,
 }
 
 // GetActiveSubscription retrieves the active subscription for a profile
-func (s *Service) GetActiveSubscription(ctx context.Context, profileID string) (*RatePlanSubscription, error) {
+func (s *Service) GetActiveSubscription(ctx context.Context, profileID string) (*repository.RatePlanSubscription, error) {
 	subscription, err := s.repo.GetActiveSubscription(ctx, profileID)
 	if err != nil {
 		s.logger.WithError(err).WithField("profile_id", profileID).Error("Failed to get active subscription")
@@ -125,7 +126,7 @@ func (s *Service) GetActiveSubscription(ctx context.Context, profileID string) (
 }
 
 // ListSubscriptions retrieves subscriptions for a profile
-func (s *Service) ListSubscriptions(ctx context.Context, profileID string, filter *SubscriptionFilter) ([]*RatePlanSubscription, error) {
+func (s *Service) ListSubscriptions(ctx context.Context, profileID string, filter *repository.SubscriptionFilter) ([]*repository.RatePlanSubscription, error) {
 	subscriptions, err := s.repo.ListSubscriptions(ctx, profileID, filter)
 	if err != nil {
 		s.logger.WithError(err).Error("Failed to list subscriptions")
@@ -135,7 +136,7 @@ func (s *Service) ListSubscriptions(ctx context.Context, profileID string, filte
 	return subscriptions, nil
 }
 
-func (s *Service) RecordUsage(ctx context.Context, req *RecordUsageRequest) (*RatePlanUsage, error) {
+func (s *Service) RecordUsage(ctx context.Context, req *repository.RecordUsageRequest) (*repository.RatePlanUsage, error) {
 	// Get active subscription
 	subscription, err := s.repo.GetActiveSubscription(ctx, req.ProfileID)
 	if err != nil {
@@ -153,10 +154,10 @@ func (s *Service) RecordUsage(ctx context.Context, req *RecordUsageRequest) (*Ra
 	}
 
 	// Create or update usage record
-	var usage *RatePlanUsage
+	var usage *repository.RatePlanUsage
 	if currentUsage == nil {
 		// Create new usage record
-		usage = &RatePlanUsage{
+		usage = &repository.RatePlanUsage{
 			ID:         uuid.New().String(),
 			RatePlanID: subscription.RatePlanID,
 			ProfileID:  req.ProfileID,

@@ -1,4 +1,4 @@
-package rateplan
+package services
 
 import (
 	"context"
@@ -6,24 +6,25 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/nutcas3/telecom-platform/apps/carrier-connector/internal/repository"
 	"github.com/sirupsen/logrus"
 )
 
 // Service provides business logic for rate plan operations
 type Service struct {
-	repo   Repository
+	repo   repository.Repository
 	logger *logrus.Logger
 }
 
 // NewService creates a new rate plan service
-func NewService(repo Repository, logger *logrus.Logger) *Service {
+func NewService(repo repository.Repository, logger *logrus.Logger) *Service {
 	return &Service{
 		repo:   repo,
 		logger: logger,
 	}
 }
 
-func (s *Service) CreateRatePlan(ctx context.Context, plan *RatePlan) (*RatePlan, error) {
+func (s *Service) CreateRatePlan(ctx context.Context, plan *repository.RatePlan) (*repository.RatePlan, error) {
 	// Generate ID if not provided
 	if plan.ID == "" {
 		plan.ID = uuid.New().String()
@@ -45,7 +46,7 @@ func (s *Service) CreateRatePlan(ctx context.Context, plan *RatePlan) (*RatePlan
 }
 
 // GetRatePlan retrieves a rate plan by ID
-func (s *Service) GetRatePlan(ctx context.Context, id string) (*RatePlan, error) {
+func (s *Service) GetRatePlan(ctx context.Context, id string) (*repository.RatePlan, error) {
 	plan, err := s.repo.GetRatePlan(ctx, id)
 	if err != nil {
 		s.logger.WithError(err).WithField("plan_id", id).Error("Failed to get rate plan")
@@ -56,7 +57,7 @@ func (s *Service) GetRatePlan(ctx context.Context, id string) (*RatePlan, error)
 }
 
 // UpdateRatePlan updates an existing rate plan
-func (s *Service) UpdateRatePlan(ctx context.Context, plan *RatePlan) (*RatePlan, error) {
+func (s *Service) UpdateRatePlan(ctx context.Context, plan *repository.RatePlan) (*repository.RatePlan, error) {
 	// Validate rate plan
 	if err := s.validateRatePlan(plan); err != nil {
 		return nil, fmt.Errorf("validation failed: %w", err)
@@ -81,9 +82,9 @@ func (s *Service) UpdateRatePlan(ctx context.Context, plan *RatePlan) (*RatePlan
 // DeleteRatePlan deletes a rate plan
 func (s *Service) DeleteRatePlan(ctx context.Context, id string) error {
 	// Check if plan has active subscriptions
-	subscriptions, err := s.repo.ListSubscriptions(ctx, "", &SubscriptionFilter{
+	subscriptions, err := s.repo.ListSubscriptions(ctx, "", &repository.SubscriptionFilter{
 		RatePlanID: id,
-		Status:     SubscriptionStatusActive,
+		Status:     repository.SubscriptionStatusActive,
 		Limit:      1,
 	})
 	if err != nil {
@@ -105,7 +106,7 @@ func (s *Service) DeleteRatePlan(ctx context.Context, id string) error {
 }
 
 // ListRatePlans retrieves rate plans with filtering
-func (s *Service) ListRatePlans(ctx context.Context, filter *RatePlanFilter) ([]*RatePlan, error) {
+func (s *Service) ListRatePlans(ctx context.Context, filter *repository.RatePlanFilter) ([]*repository.RatePlan, error) {
 	plans, err := s.repo.ListRatePlans(ctx, filter)
 	if err != nil {
 		s.logger.WithError(err).Error("Failed to list rate plans")
@@ -116,12 +117,12 @@ func (s *Service) ListRatePlans(ctx context.Context, filter *RatePlanFilter) ([]
 }
 
 // SearchRatePlans searches for rate plans based on criteria
-func (s *Service) SearchRatePlans(ctx context.Context, criteria SearchCriteria) ([]*RatePlan, error) {
-	filter := &RatePlanFilter{
+func (s *Service) SearchRatePlans(ctx context.Context, criteria repository.SearchCriteria) ([]*repository.RatePlan, error) {
+	filter := &repository.RatePlanFilter{
 		CarrierID: criteria.CarrierID,
 		Region:    criteria.Region,
 		PlanType:  criteria.PlanType,
-		Status:    PlanStatusActive,
+		Status:    repository.PlanStatusActive,
 		IsActive:  &[]bool{true}[0],
 		MinPrice:  criteria.MinPrice,
 		MaxPrice:  criteria.MaxPrice,
@@ -133,8 +134,9 @@ func (s *Service) SearchRatePlans(ctx context.Context, criteria SearchCriteria) 
 
 	return s.repo.ListRatePlans(ctx, filter)
 }
+
 // CalculateCost calculates the cost for a rate plan based on usage
-func (s *Service) CalculateCost(ctx context.Context, req *CalculateCostRequest) (*RatePlanCostCalculation, error) {
+func (s *Service) CalculateCost(ctx context.Context, req *repository.CalculateCostRequest) (*repository.RatePlanCostCalculation, error) {
 	// Get the rate plan
 	plan, err := s.repo.GetRatePlan(ctx, req.RatePlanID)
 	if err != nil {
@@ -166,9 +168,9 @@ func (s *Service) CalculateCost(ctx context.Context, req *CalculateCostRequest) 
 			for _, discount := range plan.Discounts {
 				if discount.ID == discountID && discount.IsActive {
 					switch discount.Type {
-					case DiscountTypePercentage:
+					case repository.DiscountTypePercentage:
 						discountCost += baseCost * discount.Value / 100
-					case DiscountTypeFixed:
+					case repository.DiscountTypeFixed:
 						discountCost += discount.Value
 					}
 				}
@@ -178,7 +180,7 @@ func (s *Service) CalculateCost(ctx context.Context, req *CalculateCostRequest) 
 
 	totalCost := baseCost + overageCost - discountCost
 
-	calculation := &RatePlanCostCalculation{
+	calculation := &repository.RatePlanCostCalculation{
 		RatePlanID:   req.RatePlanID,
 		BaseCost:     baseCost,
 		OverageCost:  overageCost,
