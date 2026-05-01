@@ -13,15 +13,16 @@ import (
 
 // SMDPManager manages multiple SM-DP+ carriers
 type SMDPManager struct {
-	carriers       map[string]*Carrier
-	carriersMutex  sync.RWMutex
-	es2Clients     map[string]*es2.ES2Client
-	clientsMutex   sync.RWMutex
-	repository     *repository.PostgresProfileStore
-	healthChecker  *HealthChecker
-	loadBalancer   *LoadBalancer
-	config         *ManagerConfig
-	logger         *logrus.Logger
+	carriers      map[string]*Carrier
+	carriersMutex sync.RWMutex
+	es2Clients    map[string]*es2.ES2Client
+	clientsMutex  sync.RWMutex
+	repository    *repository.PostgresProfileStore
+	healthChecker *HealthChecker
+	loadBalancer  *LoadBalancer
+	selector      *SelectionAlgorithm
+	config        *ManagerConfig
+	logger        *logrus.Logger
 }
 
 // NewSMDPManager creates a new SM-DP+ Manager
@@ -37,6 +38,7 @@ func NewSMDPManager(repo *repository.PostgresProfileStore, config *ManagerConfig
 		logger:        logger,
 		healthChecker: NewHealthChecker(config.HealthCheckInterval),
 		loadBalancer:  NewLoadBalancer(),
+		selector:      NewSelectionAlgorithm(),
 	}
 }
 
@@ -107,6 +109,51 @@ func (m *SMDPManager) validateCarrier(carrier *Carrier) error {
 		return fmt.Errorf("ES2+ configuration and base URL are required")
 	}
 	return nil
+}
+
+// SelectOptimalCarrier selects the best carrier based on criteria
+func (m *SMDPManager) SelectOptimalCarrier(ctx context.Context, criteria *SelectionCriteria) (*CarrierScore, error) {
+	m.carriersMutex.RLock()
+	defer m.carriersMutex.RUnlock()
+
+	// Get all active and healthy carriers
+	healthyCarriers := make([]*Carrier, 0)
+	for _, carrier := range m.carriers {
+		if carrier.IsActive && carrier.HealthStatus == CarrierStatusHealthy {
+			healthyCarriers = append(healthyCarriers, carrier)
+		}
+	}
+
+	return m.selector.SelectOptimalCarrier(ctx, healthyCarriers, criteria)
+}
+
+// SelectCarrier selects a carrier using the optimal algorithm with default criteria
+func (m *SMDPManager) SelectCarrier(ctx context.Context) (*Carrier, error) {
+	criteria := &SelectionCriteria{
+		Region:            "",
+		ProfileType:       "operational",
+		Urgency:           "medium",
+		CostSensitivity:   0.5,
+		PerformanceWeight: 0.4,
+		ReliabilityWeight: 0.4,
+	}
+
+	score, err := m.SelectOptimalCarrier(ctx, criteria)
+	if err != nil {
+		return nil, err
+	}
+
+	return score.Carrier, nil
+}
+
+// GetSelectionHistory returns the selection history for a carrier
+func (m *SMDPManager) GetSelectionHistory(carrierID string) []CarrierScore {
+	return m.selector.GetSelectionHistory(carrierID)
+}
+
+// UpdateLearning updates the selection algorithm with performance feedback
+func (m *SMDPManager) UpdateLearning(carrierID string, actualPerformance float64) {
+	m.selector.UpdateLearning(carrierID, actualPerformance)
 }
 
 // updateCarrierHealth updates the health status of a carrier
