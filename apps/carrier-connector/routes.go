@@ -25,9 +25,9 @@ func setupRoutes(router *gin.Engine, client *es2.ES2Client, repo repository.Prof
 	esim := api.Group("/esim")
 	{
 		esim.POST("/profiles", handler.OrderProfileHandlerWithRepo(client, repo, webhookClient, messageQueue))
-		esim.GET("/profiles", handler.ListProfilesHandlerWithRepo(repo))
-		esim.GET("/profiles/:profileId", handler.GetProfileHandlerWithRepo(client, repo))
-		esim.DELETE("/profiles/:profileId", handler.DeleteProfileHandlerWithRepo(client, repo, webhookClient, messageQueue))
+		esim.GET("/profiles", handler.ListProfilesHandler(repo))
+		esim.GET("/profiles/:profileId", handler.GetProfileHandler(repo))
+		esim.DELETE("/profiles/:profileId", handler.DeleteProfileHandler(repo))
 	}
 
 	carrier := api.Group("/carrier")
