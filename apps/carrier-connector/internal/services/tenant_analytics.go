@@ -24,11 +24,11 @@ func (s *TenantServiceImpl) GetTenantMetrics(ctx context.Context, tenantID strin
 
 	// Calculate metrics
 	metrics := &tenant.TenantMetrics{
-		TenantID:     tenantID,
-		ActiveUsers:  usageStats.ActiveUsers,
-		StorageUsed:  0, // Would be calculated from actual storage usage
-		HealthScore:  100.0,
-		Alerts:       []string{},
+		TenantID:    tenantID,
+		ActiveUsers: usageStats.ActiveUsers,
+		StorageUsed: 0, // Would be calculated from actual storage usage
+		HealthScore: 100.0,
+		Alerts:      []string{},
 	}
 
 	// Calculate last activity
@@ -97,14 +97,34 @@ func (s *TenantServiceImpl) LogTenantEvent(ctx context.Context, event *tenant.Te
 
 // GetTenantDashboard returns dashboard data for a tenant
 func (s *TenantServiceImpl) GetTenantDashboard(ctx context.Context, tenantID string) (*tenant.TenantDashboard, error) {
-	// TODO: Implement proper dashboard when type conversion issues are resolved
-	// For now, return a basic dashboard
+	// Get usage statistics
+	usageStats, err := s.GetUsageStats(ctx, tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get usage stats: %w", err)
+	}
+
+	// Get tenant metrics
+	metrics, err := s.GetTenantMetrics(ctx, tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get tenant metrics: %w", err)
+	}
+
+	// Get recent events
+	recentEvents, err := s.repository.ListEvents(ctx, tenantID, 10)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get recent events: %w", err)
+	}
+
+	// Build quota status from usage stats
+	quotaStatus := s.buildQuotaStatus(usageStats)
+
+	// Build comprehensive dashboard
 	dashboard := &tenant.TenantDashboard{
 		TenantID:     tenantID,
-		UsageStats:   nil,
-		Metrics:      nil,
-		RecentEvents: nil,
-		QuotaStatus:  nil,
+		UsageStats:   usageStats,
+		Metrics:      metrics,
+		RecentEvents: recentEvents,
+		QuotaStatus:  quotaStatus,
 		LastUpdated:  time.Now(),
 	}
 
@@ -113,18 +133,23 @@ func (s *TenantServiceImpl) GetTenantDashboard(ctx context.Context, tenantID str
 
 // GetUsageAnalytics returns detailed usage analytics for a tenant
 func (s *TenantServiceImpl) GetUsageAnalytics(ctx context.Context, tenantID string, timeRange string) (*tenant.TenantUsageAnalytics, error) {
-	// TODO: Implement proper usage analytics when type conversion issues are resolved
-	// For now, return basic analytics
 	startDate, endDate := s.parseTimeRange(timeRange)
-	
+
+	// Get usage statistics
+	usageStats, err := s.GetUsageStats(ctx, tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get usage stats: %w", err)
+	}
+
+	// Build comprehensive usage analytics
 	analytics := &tenant.TenantUsageAnalytics{
 		TenantID:    tenantID,
 		TimeRange:   timeRange,
 		StartDate:   startDate,
 		EndDate:     endDate,
-		UsageByType: make(map[string]*tenant.ResourceUsageAnalytics),
-		Trends:      make(map[string][]*tenant.UsageTrend),
-		Peaks:       make(map[string]*tenant.UsagePeak),
+		UsageByType: s.buildUsageByType(usageStats),
+		Trends:      s.buildUsageTrends(tenantID, timeRange),
+		Peaks:       s.buildUsagePeaks(tenantID, timeRange),
 	}
 
 	return analytics, nil
@@ -132,83 +157,33 @@ func (s *TenantServiceImpl) GetUsageAnalytics(ctx context.Context, tenantID stri
 
 // GetPerformanceAnalytics returns performance analytics for a tenant
 func (s *TenantServiceImpl) GetPerformanceAnalytics(ctx context.Context, tenantID string, timeRange string) (*tenant.TenantPerformanceAnalytics, error) {
-	// TODO: Implement proper performance analytics when type conversion issues are resolved
-	// For now, return basic analytics
 	startDate, endDate := s.parseTimeRange(timeRange)
-	
+
+	// Get tenant events for performance analysis
+	events, err := s.repository.ListEvents(ctx, tenantID, 1000)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get tenant events: %w", err)
+	}
+
+	// Parse API request events
+	apiRequests := s.parseAPIRequestEvents(events)
+
+	// Build comprehensive performance analytics
 	analytics := &tenant.TenantPerformanceAnalytics{
-		TenantID:           tenantID,
-		TimeRange:          timeRange,
-		StartDate:          startDate,
-		EndDate:            endDate,
-		APIPerformance:     &tenant.APIPerformance{},
-		ResourcePerformance: make(map[string]*tenant.ResourcePerformance),
-		Errors:             []*tenant.ErrorEvent{},
-		SlowQueries:        []*tenant.SlowQuery{},
+		TenantID:            tenantID,
+		TimeRange:           timeRange,
+		StartDate:           startDate,
+		EndDate:             endDate,
+		APIPerformance:      s.calculateAPIPerformance(apiRequests),
+		ResourcePerformance: s.buildResourcePerformance(tenantID, timeRange),
+		Errors:              s.parseErrorEvents(events),
+		SlowQueries:         s.parseSlowQueryEvents(events),
 	}
 
 	return analytics, nil
 }
 
-// Helper functions
-func (s *TenantServiceImpl) parseTimeRange(timeRange string) (time.Time, time.Time) {
-	now := time.Now()
-
-	switch timeRange {
-	case "1h":
-		return now.Add(-1 * time.Hour), now
-	case "24h":
-		return now.Add(-24 * time.Hour), now
-	case "7d":
-		return now.Add(-7 * 24 * time.Hour), now
-	case "30d":
-		return now.Add(-30 * 24 * time.Hour), now
-	case "90d":
-		return now.Add(-90 * 24 * time.Hour), now
-	default:
-		return now.Add(-24 * time.Hour), now
-	}
-}
-
-func (s *TenantServiceImpl) parseAPIRequestEvent(event *tenant.TenantEvent) *tenant.APIRequestEvent {
-	// Implementation depends on event structure
-	return &tenant.APIRequestEvent{
-		Timestamp:    event.Timestamp,
-		Endpoint:     "",
-		Method:       "",
-		StatusCode:   200,
-		ResponseTime: 0,
-		UserID:       event.UserID,
-	}
-}
-
-func (s *TenantServiceImpl) parseErrorEvent(event *tenant.TenantEvent) *tenant.ErrorEvent {
-	// Implementation depends on event structure
-	return &tenant.ErrorEvent{
-		Timestamp: event.Timestamp,
-		Error:     "",
-		Context:   event.EventData,
-		UserID:    event.UserID,
-	}
-}
-
-func (s *TenantServiceImpl) parseSlowQueryEvent(event *tenant.TenantEvent) *tenant.SlowQuery {
-	// Implementation depends on event structure
-	return &tenant.SlowQuery{
-		Timestamp: event.Timestamp,
-		Query:     "",
-		Duration:  0,
-		Context:   event.EventData,
-	}
-}
-
-func (s *TenantServiceImpl) calculateAPIPerformance(requests []*tenant.APIRequestEvent) *tenant.APIPerformance {
-	// Implementation would calculate performance metrics
-	return &tenant.APIPerformance{
-		TotalRequests:       len(requests),
-		AverageResponseTime: 0,
-		P95ResponseTime:     0,
-		ErrorRate:           0,
-		RequestsPerSecond:   0,
-	}
+// generateUsageID generates a usage ID
+func generateUsageID(resourceType, tenantID string) string {
+	return fmt.Sprintf("usage_%s_%s", resourceType, tenantID)
 }
