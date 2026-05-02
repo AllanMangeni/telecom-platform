@@ -15,6 +15,7 @@ import (
 // TenantMiddleware provides tenant isolation middleware
 type TenantMiddleware struct {
 	tenantService Service
+	rateLimiter   *TenantRateLimiter
 	logger        *logrus.Logger
 }
 
@@ -22,6 +23,7 @@ type TenantMiddleware struct {
 func NewTenantMiddleware(tenantService Service, logger *logrus.Logger) *TenantMiddleware {
 	return &TenantMiddleware{
 		tenantService: tenantService,
+		rateLimiter:   NewTenantRateLimiter(logger),
 		logger:        logger,
 	}
 }
@@ -55,6 +57,11 @@ func (tm *TenantMiddleware) ExtractTenantFromHeader(c *gin.Context) (*TenantCont
 	tenantCtx, err := tm.tenantService.GetTenantContext(c.Request.Context(), tenantID)
 	if err != nil {
 		return nil, err
+	}
+
+	// Apply rate limiting
+	if !tm.rateLimiter.AllowRequest(c.Request.Context(), tenantID, tenantCtx.Plan) {
+		return nil, errors.New("rate limit exceeded for tenant")
 	}
 
 	return tenantCtx, nil

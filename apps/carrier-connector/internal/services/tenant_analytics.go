@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/nutcas3/telecom-platform/apps/carrier-connector/internal/id"
 	"github.com/nutcas3/telecom-platform/apps/carrier-connector/internal/tenant"
 )
 
@@ -146,14 +145,6 @@ func (s *TenantServiceImpl) GetPerformanceAnalytics(ctx context.Context, tenantI
 	}
 
 	return analytics, nil
-}
-
-func generateUsageID(resourceType, tenantID string) string {
-	// TODO: Use resourceType and tenantID in ID generation for better traceability
-	// For now, use generic usage prefix - could be enhanced to include resource type
-	_ = resourceType // Suppress unused parameter warning until implementation is complete
-	_ = tenantID     // Suppress unused parameter warning until implementation is complete
-	return id.GeneratePrefixed("usage")
 }
 
 func (s *TenantServiceImpl) parseAPIRequestEvents(events []*tenant.TenantEvent) []*tenant.APIRequestEvent {

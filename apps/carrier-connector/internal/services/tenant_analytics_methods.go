@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/nutcas3/telecom-platform/apps/carrier-connector/internal/id"
 	"github.com/nutcas3/telecom-platform/apps/carrier-connector/internal/tenant"
 )
 
@@ -40,7 +41,7 @@ func (s *TenantServiceImpl) buildQuotaStatus(usageStats *tenant.TenantUsageStats
 		if err != nil {
 			// Create empty usage if not found
 			usage = &tenant.TenantUsage{
-				ID:             generateUsageID(resourceType, usageStats.TenantID),
+				ID:             id.GenerateUsageID(resourceType, usageStats.TenantID),
 				TenantID:       usageStats.TenantID,
 				ResourceType:   resourceType,
 				ResourceCount:  0,
