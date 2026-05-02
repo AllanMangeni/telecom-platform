@@ -7,6 +7,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/nutcas3/telecom-platform/apps/carrier-connector/internal/currency"
 	"github.com/nutcas3/telecom-platform/apps/carrier-connector/internal/rateplan"
 )
 
@@ -21,7 +22,12 @@ func (rpci *RatePlanCurrencyIntegrator) GetPlansInCurrency(ctx context.Context, 
 	// Convert prices to target currency
 	for _, plan := range plans {
 		if plan.Currency != targetCurrency {
-			conversion, err := rpci.exchangeService.ConvertAmount(ctx, plan.BasePrice, plan.Currency, targetCurrency)
+			conversionReq := &currency.CurrencyConversionRequest{
+				Amount:       plan.BasePrice,
+				FromCurrency: plan.Currency,
+				ToCurrency:   targetCurrency,
+			}
+			conversion, err := rpci.billingService.ConvertAmount(ctx, conversionReq)
 			if err != nil {
 				rpci.logger.WithError(err).WithFields(logrus.Fields{
 					"plan_id":       plan.ID,
@@ -60,7 +66,11 @@ func (rpci *RatePlanCurrencyIntegrator) UpdatePlanCurrency(ctx context.Context, 
 	}
 
 	// Convert all monetary values to new currency
-	convertedPrice, err := rpci.exchangeService.ConvertAmount(ctx, plan.BasePrice, plan.Currency, newCurrency)
+	convertedPrice, err := rpci.billingService.ConvertAmount(ctx, &currency.CurrencyConversionRequest{
+		Amount:       plan.BasePrice,
+		FromCurrency: plan.Currency,
+		ToCurrency:   newCurrency,
+	})
 	if err != nil {
 		return fmt.Errorf("failed to convert base price: %w", err)
 	}
@@ -97,37 +107,6 @@ func (rpci *RatePlanCurrencyIntegrator) UpdatePlanCurrency(ctx context.Context, 
 	}).Info("Rate plan currency updated")
 
 	return nil
-}
-
-// calculateOverageCost calculates overage costs for usage
-func (rpci *RatePlanCurrencyIntegrator) calculateOverageCost(ctx context.Context, plan *rateplan.RatePlan, usage *rateplan.RatePlanUsage) (float64, error) {
-	overageCost := 0.0
-
-	// Calculate data overage
-	if plan.DataAllowance != nil && usage.DataUsed > plan.DataAllowance.Amount {
-		dataOverage := usage.DataUsed - plan.DataAllowance.Amount
-		if plan.OverageRates != nil {
-			overageCost += float64(dataOverage) * plan.OverageRates.DataRate
-		}
-	}
-
-	// Calculate voice overage
-	if plan.VoiceAllowance != nil && usage.VoiceUsed > plan.VoiceAllowance.Minutes {
-		voiceOverage := usage.VoiceUsed - plan.VoiceAllowance.Minutes
-		if plan.OverageRates != nil {
-			overageCost += float64(voiceOverage) * plan.OverageRates.VoiceRate
-		}
-	}
-
-	// Calculate SMS overage
-	if plan.SMSAllowance != nil && usage.SMSUsed > plan.SMSAllowance.Messages {
-		smsOverage := usage.SMSUsed - plan.SMSAllowance.Messages
-		if plan.OverageRates != nil {
-			overageCost += float64(smsOverage) * plan.OverageRates.SMSRate
-		}
-	}
-
-	return overageCost, nil
 }
 
 // GetCurrencyUsageForPlan gets currency usage statistics for a specific rate plan

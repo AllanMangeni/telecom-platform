@@ -45,7 +45,7 @@ func (s *TenantServiceImpl) CreateTenant(ctx context.Context, req *tenant.Create
 	}
 
 	// Create tenant
-	tenant := &tenant.Tenant{
+	newTenant := &tenant.Tenant{
 		ID:          uuid.New().String(),
 		Name:        req.Name,
 		Domain:      req.Domain,
@@ -61,21 +61,21 @@ func (s *TenantServiceImpl) CreateTenant(ctx context.Context, req *tenant.Create
 	}
 
 	// Set default settings if not provided
-	if tenant.Settings == nil {
-		tenant.Settings = s.getDefaultSettings(req.Plan)
+	if newTenant.Settings == nil {
+		newTenant.Settings = s.getDefaultSettings(req.Plan)
 	}
 
 	// Save tenant
-	if err := s.repository.CreateTenant(ctx, tenant); err != nil {
+	if err := s.repository.CreateTenant(ctx, newTenant); err != nil {
 		s.logger.WithError(err).Error("Failed to create tenant")
 		return nil, fmt.Errorf("failed to create tenant: %w", err)
 	}
 
 	// Create initial configuration
 	config := &tenant.TenantConfig{
-		TenantID: tenant.ID,
+		TenantID: newTenant.ID,
 		Config:   make(map[string]interface{}),
-		Settings: tenant.Settings,
+		Settings: newTenant.Settings,
 		Quotas:   s.getDefaultQuotas(req.Plan),
 		Features: s.getDefaultFeatures(req.Plan),
 	}
@@ -85,12 +85,12 @@ func (s *TenantServiceImpl) CreateTenant(ctx context.Context, req *tenant.Create
 	}
 
 	s.logger.WithFields(logrus.Fields{
-		"tenant_id": tenant.ID,
-		"name":      tenant.Name,
-		"domain":    tenant.Domain,
+		"tenant_id": newTenant.ID,
+		"name":      newTenant.Name,
+		"domain":    newTenant.Domain,
 	}).Info("Tenant created successfully")
 
-	return tenant, nil
+	return newTenant, nil
 }
 
 // GetTenant retrieves a tenant by ID
