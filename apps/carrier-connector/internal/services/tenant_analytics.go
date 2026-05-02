@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/nutcas3/telecom-platform/apps/carrier-connector/internal/id"
 	"github.com/nutcas3/telecom-platform/apps/carrier-connector/internal/tenant"
 )
 
-// GetTenantMetrics retrieves tenant metrics
 func (s *TenantServiceImpl) GetTenantMetrics(ctx context.Context, tenantID string) (*tenant.TenantMetrics, error) {
 	// Get usage stats
 	usageStats, err := s.GetUsageStats(ctx, tenantID)
@@ -76,7 +76,6 @@ func (s *TenantServiceImpl) GetTenantMetrics(ctx context.Context, tenantID strin
 	return metrics, nil
 }
 
-// GetTenantEvents retrieves tenant events
 func (s *TenantServiceImpl) GetTenantEvents(ctx context.Context, tenantID string, limit int) ([]*tenant.TenantEvent, error) {
 	events, err := s.repository.ListEvents(ctx, tenantID, limit)
 	if err != nil {
@@ -86,7 +85,6 @@ func (s *TenantServiceImpl) GetTenantEvents(ctx context.Context, tenantID string
 	return events, nil
 }
 
-// LogTenantEvent logs a tenant event
 func (s *TenantServiceImpl) LogTenantEvent(ctx context.Context, event *tenant.TenantEvent) error {
 	if err := s.repository.CreateEvent(ctx, event); err != nil {
 		return fmt.Errorf("failed to create tenant event: %w", err)
@@ -95,30 +93,25 @@ func (s *TenantServiceImpl) LogTenantEvent(ctx context.Context, event *tenant.Te
 	return nil
 }
 
-// GetTenantDashboard returns dashboard data for a tenant
 func (s *TenantServiceImpl) GetTenantDashboard(ctx context.Context, tenantID string) (*tenant.TenantDashboard, error) {
-	// Get usage statistics
+
 	usageStats, err := s.GetUsageStats(ctx, tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get usage stats: %w", err)
 	}
 
-	// Get tenant metrics
 	metrics, err := s.GetTenantMetrics(ctx, tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get tenant metrics: %w", err)
 	}
 
-	// Get recent events
 	recentEvents, err := s.repository.ListEvents(ctx, tenantID, 10)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get recent events: %w", err)
 	}
 
-	// Build quota status from usage stats
 	quotaStatus := s.buildQuotaStatus(usageStats)
 
-	// Build comprehensive dashboard
 	dashboard := &tenant.TenantDashboard{
 		TenantID:     tenantID,
 		UsageStats:   usageStats,
@@ -131,51 +124,23 @@ func (s *TenantServiceImpl) GetTenantDashboard(ctx context.Context, tenantID str
 	return dashboard, nil
 }
 
-// GetUsageAnalytics returns detailed usage analytics for a tenant
-func (s *TenantServiceImpl) GetUsageAnalytics(ctx context.Context, tenantID string, timeRange string) (*tenant.TenantUsageAnalytics, error) {
-	startDate, endDate := s.parseTimeRange(timeRange)
-
-	// Get usage statistics
-	usageStats, err := s.GetUsageStats(ctx, tenantID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get usage stats: %w", err)
-	}
-
-	// Build comprehensive usage analytics
-	analytics := &tenant.TenantUsageAnalytics{
-		TenantID:    tenantID,
-		TimeRange:   timeRange,
-		StartDate:   startDate,
-		EndDate:     endDate,
-		UsageByType: s.buildUsageByType(usageStats),
-		Trends:      s.buildUsageTrends(tenantID, timeRange),
-		Peaks:       s.buildUsagePeaks(tenantID, timeRange),
-	}
-
-	return analytics, nil
-}
-
-// GetPerformanceAnalytics returns performance analytics for a tenant
 func (s *TenantServiceImpl) GetPerformanceAnalytics(ctx context.Context, tenantID string, timeRange string) (*tenant.TenantPerformanceAnalytics, error) {
 	startDate, endDate := s.parseTimeRange(timeRange)
 
-	// Get tenant events for performance analysis
 	events, err := s.repository.ListEvents(ctx, tenantID, 1000)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get tenant events: %w", err)
 	}
 
-	// Parse API request events
 	apiRequests := s.parseAPIRequestEvents(events)
 
-	// Build comprehensive performance analytics
 	analytics := &tenant.TenantPerformanceAnalytics{
 		TenantID:            tenantID,
 		TimeRange:           timeRange,
 		StartDate:           startDate,
 		EndDate:             endDate,
 		APIPerformance:      s.calculateAPIPerformance(apiRequests),
-		ResourcePerformance: s.buildResourcePerformance(tenantID, timeRange),
+		ResourcePerformance: s.buildResourcePerformance(ctx, tenantID, timeRange),
 		Errors:              s.parseErrorEvents(events),
 		SlowQueries:         s.parseSlowQueryEvents(events),
 	}
@@ -183,7 +148,64 @@ func (s *TenantServiceImpl) GetPerformanceAnalytics(ctx context.Context, tenantI
 	return analytics, nil
 }
 
-// generateUsageID generates a usage ID
 func generateUsageID(resourceType, tenantID string) string {
-	return fmt.Sprintf("usage_%s_%s", resourceType, tenantID)
+	return id.GeneratePrefixed("usage")
+}
+
+func (s *TenantServiceImpl) parseAPIRequestEvents(events []*tenant.TenantEvent) []*tenant.APIRequestEvent {
+	apiRequests := make([]*tenant.APIRequestEvent, 0)
+
+	for _, event := range events {
+		if event.EventType == "api_request" {
+			request := s.parseAPIRequestEvent(event)
+			apiRequests = append(apiRequests, request)
+		}
+	}
+
+	return apiRequests
+}
+
+func (s *TenantServiceImpl) buildResourcePerformance(ctx context.Context, tenantID, timeRange string) map[string]*tenant.ResourcePerformance {
+	resourcePerformance := make(map[string]*tenant.ResourcePerformance)
+
+	resourceTypes := []string{"users", "profiles", "carriers", "api_calls", "storage"}
+
+	for _, resourceType := range resourceTypes {
+		performance := &tenant.ResourcePerformance{
+			ResourceType: resourceType,
+			ResponseTime: 150.5,  // Mock response time in ms
+			Throughput:   1000.0, // Mock requests per second
+			ErrorRate:    2.1,    // Mock error rate percentage
+		}
+
+		resourcePerformance[resourceType] = performance
+	}
+
+	return resourcePerformance
+}
+
+func (s *TenantServiceImpl) parseErrorEvents(events []*tenant.TenantEvent) []*tenant.ErrorEvent {
+	errorEvents := make([]*tenant.ErrorEvent, 0)
+
+	for _, event := range events {
+		if event.EventType == "error" {
+			errorEvent := s.parseErrorEvent(event)
+			errorEvents = append(errorEvents, errorEvent)
+		}
+	}
+
+	return errorEvents
+}
+
+func (s *TenantServiceImpl) parseSlowQueryEvents(events []*tenant.TenantEvent) []*tenant.SlowQuery {
+	slowQueries := make([]*tenant.SlowQuery, 0)
+
+	for _, event := range events {
+		if event.EventType == "slow_query" {
+			slowQuery := s.parseSlowQueryEvent(event)
+			slowQueries = append(slowQueries, slowQuery)
+		}
+	}
+
+	return slowQueries
 }

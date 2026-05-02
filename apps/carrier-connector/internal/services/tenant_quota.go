@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/nutcas3/telecom-platform/apps/carrier-connector/internal/id"
 	"github.com/nutcas3/telecom-platform/apps/carrier-connector/internal/tenant"
 )
 
@@ -97,7 +98,7 @@ func (s *TenantServiceImpl) GetUsageStats(ctx context.Context, tenantID string) 
 func (s *TenantServiceImpl) UpdateUsage(ctx context.Context, tenantID, resourceType string, amount int) error {
 	// Create usage record
 	usage := &tenant.TenantUsage{
-		ID:           fmt.Sprintf("usage_%d", time.Now().UnixNano()),
+		ID:           id.GeneratePrefixed("usage"),
 		TenantID:     tenantID,
 		ResourceType: resourceType,
 		QuotaUsed:    amount,
@@ -139,7 +140,7 @@ func (s *TenantServiceImpl) CheckRateLimit(ctx context.Context, tenantCtx *tenan
 func (s *TenantServiceImpl) RecordAPIUsage(ctx context.Context, tenantID, endpoint string, statusCode int, responseTime time.Duration) error {
 	// Create usage record
 	usage := &tenant.TenantUsage{
-		ID:           fmt.Sprintf("api_%d", time.Now().UnixNano()),
+		ID:           id.GeneratePrefixed("api"),
 		TenantID:     tenantID,
 		ResourceType: "api_calls",
 		QuotaUsed:    1,
