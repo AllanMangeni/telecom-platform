@@ -2,27 +2,23 @@ package repository
 
 import (
 	"context"
-	
+
 	"github.com/nutcas3/telecom-platform/apps/carrier-connector/internal/tenant"
 	"gorm.io/gorm"
 )
 
-// GormTenantRepository implements the tenant repository interface using GORM
 type GormTenantRepository struct {
 	db *gorm.DB
 }
 
-// NewGormTenantRepository creates a new GORM tenant repository
 func NewGormTenantRepository(db *gorm.DB) TenantRepository {
 	return &GormTenantRepository{db: db}
 }
 
-// CreateTenant creates a new tenant
 func (r *GormTenantRepository) CreateTenant(ctx context.Context, tenant *tenant.Tenant) error {
 	return r.db.WithContext(ctx).Create(tenant).Error
 }
 
-// GetTenant retrieves a tenant by ID
 func (r *GormTenantRepository) GetTenant(ctx context.Context, id string) (*tenant.Tenant, error) {
 	var tenant tenant.Tenant
 	err := r.db.WithContext(ctx).Where("id = ?", id).First(&tenant).Error
@@ -56,7 +52,6 @@ func (r *GormTenantRepository) DeleteTenant(ctx context.Context, id string) erro
 func (r *GormTenantRepository) ListTenants(ctx context.Context, filter *tenant.TenantFilter) ([]*tenant.Tenant, error) {
 	query := r.db.WithContext(ctx).Model(&tenant.Tenant{})
 
-	// Apply filters
 	if filter.ID != "" {
 		query = query.Where("id = ?", filter.ID)
 	}
@@ -97,11 +92,9 @@ func (r *GormTenantRepository) ListTenants(ctx context.Context, filter *tenant.T
 	return tenants, err
 }
 
-// CountTenants counts tenants with filtering
 func (r *GormTenantRepository) CountTenants(ctx context.Context, filter *tenant.TenantFilter) (int, error) {
 	query := r.db.WithContext(ctx).Model(&tenant.Tenant{})
 
-	// Apply filters
 	if filter.ID != "" {
 		query = query.Where("id = ?", filter.ID)
 	}
@@ -123,12 +116,10 @@ func (r *GormTenantRepository) CountTenants(ctx context.Context, filter *tenant.
 	return int(count), err
 }
 
-// CreateTenantUser creates a new tenant user
 func (r *GormTenantRepository) CreateTenantUser(ctx context.Context, user *tenant.TenantUser) error {
 	return r.db.WithContext(ctx).Create(user).Error
 }
 
-// GetTenantUser retrieves a tenant user
 func (r *GormTenantRepository) GetTenantUser(ctx context.Context, tenantID, userID string) (*tenant.TenantUser, error) {
 	var user tenant.TenantUser
 	err := r.db.WithContext(ctx).Where("tenant_id = ? AND user_id = ?", tenantID, userID).First(&user).Error
@@ -138,21 +129,17 @@ func (r *GormTenantRepository) GetTenantUser(ctx context.Context, tenantID, user
 	return &user, nil
 }
 
-// UpdateTenantUser updates a tenant user
 func (r *GormTenantRepository) UpdateTenantUser(ctx context.Context, user *tenant.TenantUser) error {
 	return r.db.WithContext(ctx).Save(user).Error
 }
 
-// DeleteTenantUser deletes a tenant user
 func (r *GormTenantRepository) DeleteTenantUser(ctx context.Context, tenantID, userID string) error {
 	return r.db.WithContext(ctx).Delete(&tenant.TenantUser{}, "tenant_id = ? AND user_id = ?", tenantID, userID).Error
 }
 
-// ListTenantUsers lists tenant users with filtering
 func (r *GormTenantRepository) ListTenantUsers(ctx context.Context, filter *tenant.TenantUserFilter) ([]*tenant.TenantUser, error) {
 	query := r.db.WithContext(ctx).Model(&tenant.TenantUser{})
 
-	// Apply filters
 	if filter.TenantID != "" {
 		query = query.Where("tenant_id = ?", filter.TenantID)
 	}
@@ -180,4 +167,28 @@ func (r *GormTenantRepository) ListTenantUsers(ctx context.Context, filter *tena
 	var users []*tenant.TenantUser
 	err := query.Find(&users).Error
 	return users, err
+}
+
+func (r *GormTenantRepository) CountTenantUsers(ctx context.Context, filter *tenant.TenantUserFilter) (int, error) {
+	query := r.db.WithContext(ctx).Model(&tenant.TenantUser{})
+
+	if filter.TenantID != "" {
+		query = query.Where("tenant_id = ?", filter.TenantID)
+	}
+	if filter.UserID != "" {
+		query = query.Where("user_id = ?", filter.UserID)
+	}
+	if filter.Email != "" {
+		query = query.Where("email ILIKE ?", "%"+filter.Email+"%")
+	}
+	if filter.Role != "" {
+		query = query.Where("role = ?", filter.Role)
+	}
+	if filter.Status != "" {
+		query = query.Where("status = ?", filter.Status)
+	}
+
+	var count int64
+	err := query.Count(&count).Error
+	return int(count), err
 }
