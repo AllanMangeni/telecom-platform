@@ -28,9 +28,8 @@ func (tacs *TenantAwareCurrencyService) ProcessBilling(ctx context.Context, req 
 		"currency":   req.Currency,
 	}).Info("Processing tenant billing request")
 
-	// In a real implementation, this would ensure the billing operation
-	// is isolated to the specific tenant. For now, delegate to the underlying service
-	// with proper logging for audit purposes.
+	// Inject tenant ID into context for downstream isolation
+	ctx = context.WithValue(ctx, "tenant_id", tacs.tenantID)
 	return tacs.billingService.ProcessBilling(ctx, req)
 }
 
@@ -44,8 +43,8 @@ func (tacs *TenantAwareCurrencyService) ConvertAmount(ctx context.Context, req *
 		"amount":        req.Amount,
 	}).Info("Processing tenant currency conversion")
 
-	// In a real implementation, this would ensure the conversion operation
-	// is isolated to the specific tenant and use tenant-specific exchange rates
+	// Inject tenant ID into context for downstream isolation
+	ctx = context.WithValue(ctx, "tenant_id", tacs.tenantID)
 	return tacs.billingService.ConvertAmount(ctx, req)
 }
 
@@ -56,9 +55,8 @@ func (tacs *TenantAwareCurrencyService) GetBillingHistory(ctx context.Context, p
 		"tenant_id":  tacs.tenantID,
 		"profile_id": profileID,
 	}).Info("Retrieving tenant billing history")
-	// In a real implementation, this would filter results to only include
-	// transactions belonging to the specific tenant
-
+	// Inject tenant ID into context so the repository layer filters by tenant
+	ctx = context.WithValue(ctx, "tenant_id", tacs.tenantID)
 	return tacs.billingService.GetBillingHistory(ctx, profileID, filter)
 }
 
@@ -72,8 +70,8 @@ func (tacs *TenantAwareCurrencyService) CalculateTotalBilling(ctx context.Contex
 		"to_date":    toDate,
 	}).Info("Calculating tenant total billing")
 
-	// In a real implementation, this would filter by tenant
-	// For now, delegate to the underlying service
+	// Inject tenant ID into context so the repository layer scopes calculations
+	ctx = context.WithValue(ctx, "tenant_id", tacs.tenantID)
 	return tacs.billingService.CalculateTotalBilling(ctx, profileID, fromDate, toDate)
 }
 
