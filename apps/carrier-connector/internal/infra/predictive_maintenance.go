@@ -187,7 +187,7 @@ func (s *PredictiveMaintenanceService) GetMaintenanceAlerts(ctx context.Context,
 }
 
 // PredictFailure predicts failure for an asset
-func (s *PredictiveMaintenanceService) PredictFailure(ctx context.Context, assetID string) (*MaintenanceAlert, error) {
+func (s *PredictiveMaintenanceService) PredictFailure(_ context.Context, assetID string) (*MaintenanceAlert, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

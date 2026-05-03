@@ -141,3 +141,45 @@ type DiscountStatistics struct {
 	SmallestDiscount   float64 `json:"smallest_discount"`
 	TotalDiscountValue float64 `json:"total_discount_value"`
 }
+type OptimizationResult struct {
+	RatePlanID      string               `json:"rate_plan_id"`
+	Strategy        OptimizationStrategy `json:"strategy"`
+	CurrentPrice    float64              `json:"current_price"`
+	OptimalPrice    float64              `json:"optimal_price"`
+	PriceChange     float64              `json:"price_change_pct"`
+	ExpectedRevenue float64              `json:"expected_revenue"`
+	ExpectedDemand  int64                `json:"expected_demand"`
+	Confidence      float64              `json:"confidence"` // 0-100
+	Reasoning       []string             `json:"reasoning"`
+	Risks           []string             `json:"risks"`
+	Recommendations []string             `json:"recommendations"`
+	GeneratedAt     time.Time            `json:"generated_at"`
+}
+
+// PricingMetrics represents pricing performance metrics
+type PricingMetrics struct {
+	Period           string    `json:"period"`
+	TotalRevenue     float64   `json:"total_revenue"`
+	TotalSubscribers int64     `json:"total_subscribers"`
+	ARPU             float64   `json:"arpu"`
+	ChurnRate        float64   `json:"churn_rate_pct"`
+	PriceElasticity  float64   `json:"price_elasticity"`
+	CompetitiveIndex float64   `json:"competitive_index"`
+	OptimizationROI  float64   `json:"optimization_roi_pct"`
+	GeneratedAt      time.Time `json:"generated_at"`
+}
+// RatePlan represents a rate plan (simplified)
+type RatePlan struct {
+	ID        string  `gorm:"primaryKey"`
+	Name      string  `json:"name"`
+	BasePrice float64 `json:"base_price"`
+	Currency  string  `json:"currency"`
+}
+
+// HistoricalDataPoint represents historical pricing and demand data
+type HistoricalDataPoint struct {
+	Date    time.Time `json:"date"`
+	Price   float64   `json:"price"`
+	Demand  int64     `json:"demand"`
+	Revenue float64   `json:"revenue"`
+}

@@ -113,9 +113,10 @@ func (s *FraudDetectionService) GetFraudMetrics(_ context.Context, period string
 			m.TotalAlerts++
 			m.ByType[a.Type]++
 			m.BySeverity[a.Severity]++
-			if a.Status == "resolved" {
+			switch a.Status {
+			case "resolved":
 				m.ResolvedAlerts++
-			} else if a.Status == "false_positive" {
+			case "false_positive":
 				m.FalsePositives++
 			}
 		}

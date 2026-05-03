@@ -216,7 +216,7 @@ func (s *MarketAnalysisService) calculateDemographicMetrics(ctx context.Context,
 }
 
 // analyzeCompetitors analyzes competitive landscape
-func (s *MarketAnalysisService) analyzeCompetitors(ctx context.Context, metrics *MarketMetrics) {
+func (s *MarketAnalysisService) analyzeCompetitors(_ context.Context, metrics *MarketMetrics) {
 	competitors := []struct {
 		name       string
 		subs       int64
@@ -272,7 +272,7 @@ func (s *MarketAnalysisService) analyzeCompetitors(ctx context.Context, metrics 
 }
 
 // identifyOpportunities identifies market penetration opportunities
-func (s *MarketAnalysisService) identifyOpportunities(ctx context.Context, metrics *MarketMetrics) {
+func (s *MarketAnalysisService) identifyOpportunities(_ context.Context, metrics *MarketMetrics) {
 	opportunities := []OpportunityMetrics{
 		{
 			Country:            "India",
