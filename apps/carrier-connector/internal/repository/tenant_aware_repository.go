@@ -80,7 +80,7 @@ func (r *TenantAwareRepository) TenantScopedTransaction(ctx context.Context, fn 
 			// Since the function expects *gorm.DB, we need to embed the wrapper properly
 			return fn(wrappedTx.DB.Scopes(func(db *gorm.DB) *gorm.DB {
 				// Apply tenant filtering to all queries
-				return db.Where("tenant_id = ?", r.tenantID)
+				return db.Where("tenant_id = ?", wrappedTx.tenantID)
 			}))
 		}
 		return fn(tx)

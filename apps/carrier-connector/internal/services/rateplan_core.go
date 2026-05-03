@@ -13,15 +13,16 @@ import (
 
 type RatePlanCurrencyIntegrator struct {
 	billingService  currency.BillingService
-	exchangeService *currency.ExchangeRateService
+	exchangeService currency.ExchangeRateService
 	ratePlanService rateplan.Service
 	logger          *logrus.Logger
 	baseCurrency    string
 }
 
+// NewRatePlanCurrencyIntegrator creates a new rate plan currency integrator
 func NewRatePlanCurrencyIntegrator(
 	billingService currency.BillingService,
-	exchangeService *currency.ExchangeRateService,
+	exchangeService currency.ExchangeRateService,
 	ratePlanService rateplan.Service,
 	logger *logrus.Logger,
 	baseCurrency string,
@@ -35,22 +36,24 @@ func NewRatePlanCurrencyIntegrator(
 	}
 }
 
+// SubscribeToPlanWithCurrency subscribes to a rate plan with currency conversion
 func (rpci *RatePlanCurrencyIntegrator) SubscribeToPlanWithCurrency(ctx context.Context, profileID string, planID string, targetCurrency string) (*rateplan.RatePlanSubscription, error) {
+	// Get the rate plan
 	plan, err := rpci.ratePlanService.GetRatePlan(ctx, planID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get rate plan: %w", err)
 	}
 
+	// Convert price to requested currency if needed
 	subscriptionPrice := plan.BasePrice
 	exchangeRate := 1.0
 
 	if targetCurrency != plan.Currency {
-		conversionReq := &currency.CurrencyConversionRequest{
+		conversion, err := rpci.billingService.ConvertAmount(ctx, &currency.CurrencyConversionRequest{
 			Amount:       plan.BasePrice,
 			FromCurrency: plan.Currency,
 			ToCurrency:   targetCurrency,
-		}
-		conversion, err := rpci.billingService.ConvertAmount(ctx, conversionReq)
+		})
 		if err != nil {
 			rpci.logger.WithError(err).Error("Failed to convert rate plan price")
 			return nil, fmt.Errorf("currency conversion failed: %w", err)
@@ -59,19 +62,18 @@ func (rpci *RatePlanCurrencyIntegrator) SubscribeToPlanWithCurrency(ctx context.
 		exchangeRate = conversion.ExchangeRate
 	}
 
-	metadata := map[string]any{
-		"original_currency":     plan.Currency,
-		"subscription_currency": targetCurrency,
-		"original_price":        plan.BasePrice,
-		"subscription_price":    subscriptionPrice,
-		"exchange_rate":         exchangeRate,
-	}
-
+	// Create subscription request with currency information
 	subscribeReq := &rateplan.SubscribeRequest{
 		ProfileID:  profileID,
 		RatePlanID: planID,
 		AutoRenew:  true,
-		Metadata:   metadata,
+		Metadata: map[string]any{
+			"original_currency":     plan.Currency,
+			"subscription_currency": targetCurrency,
+			"original_price":        plan.BasePrice,
+			"subscription_price":    subscriptionPrice,
+			"exchange_rate":         exchangeRate,
+		},
 	}
 
 	createdSubscription, err := rpci.ratePlanService.SubscribeToPlan(ctx, subscribeReq)
@@ -79,6 +81,7 @@ func (rpci *RatePlanCurrencyIntegrator) SubscribeToPlanWithCurrency(ctx context.
 		return nil, fmt.Errorf("failed to create subscription: %w", err)
 	}
 
+	// Process initial billing
 	billingReq := &currency.BillingRequest{
 		ProfileID:      profileID,
 		SubscriptionID: createdSubscription.ID,
@@ -104,14 +107,18 @@ func (rpci *RatePlanCurrencyIntegrator) SubscribeToPlanWithCurrency(ctx context.
 	return createdSubscription, nil
 }
 
+// CalculatePlanCostInCurrency calculates the cost of a rate plan in a specific currency
 func (rpci *RatePlanCurrencyIntegrator) CalculatePlanCostInCurrency(ctx context.Context, planID string, targetCurrency string, usageData *rateplan.RatePlanUsage) (*currency.BillingSummary, error) {
+	// Get the rate plan
 	plan, err := rpci.ratePlanService.GetRatePlan(ctx, planID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get rate plan: %w", err)
 	}
 
+	// Calculate base cost
 	baseCost := plan.BasePrice
 
+	// Add overage costs if usage data is provided
 	if usageData != nil {
 		overageCost, err := rpci.calculateOverageCost(ctx, plan, usageData)
 		if err != nil {
@@ -121,16 +128,12 @@ func (rpci *RatePlanCurrencyIntegrator) CalculatePlanCostInCurrency(ctx context.
 		}
 	}
 
+	// Convert to requested currency
 	convertedCost := baseCost
 	exchangeRate := 1.0
 
 	if targetCurrency != plan.Currency {
-		conversionReq := &currency.CurrencyConversionRequest{
-			Amount:       baseCost,
-			FromCurrency: plan.Currency,
-			ToCurrency:   targetCurrency,
-		}
-		conversion, err := rpci.billingService.ConvertAmount(ctx, conversionReq)
+		conversion, err := rpci.exchangeService.ConvertAmount(ctx, baseCost, plan.Currency, targetCurrency)
 		if err != nil {
 			return nil, fmt.Errorf("currency conversion failed: %w", err)
 		}
@@ -138,6 +141,7 @@ func (rpci *RatePlanCurrencyIntegrator) CalculatePlanCostInCurrency(ctx context.
 		exchangeRate = conversion.ExchangeRate
 	}
 
+	// Create billing summary
 	summary := &currency.BillingSummary{
 		ProfileID:        usageData.ProfileID,
 		TotalAmount:      convertedCost,
@@ -160,13 +164,11 @@ func (rpci *RatePlanCurrencyIntegrator) CalculatePlanCostInCurrency(ctx context.
 	return summary, nil
 }
 
-func (rpci *RatePlanCurrencyIntegrator) calculateOverageCost(ctx context.Context, plan *rateplan.RatePlan, usage *rateplan.RatePlanUsage) (float64, error) {
-	// Check for context cancellation before calculation
-	if err := ctx.Err(); err != nil {
-		return 0.0, fmt.Errorf("overage calculation cancelled: %w", err)
-	}
+// calculateOverageCost calculates overage costs for usage
+func (rpci *RatePlanCurrencyIntegrator) calculateOverageCost(_ context.Context, plan *rateplan.RatePlan, usage *rateplan.RatePlanUsage) (float64, error) {
 	overageCost := 0.0
 
+	// Calculate data overage
 	if plan.DataAllowance != nil && usage.DataUsed > plan.DataAllowance.Amount {
 		dataOverage := usage.DataUsed - plan.DataAllowance.Amount
 		if plan.OverageRates != nil {
@@ -174,6 +176,7 @@ func (rpci *RatePlanCurrencyIntegrator) calculateOverageCost(ctx context.Context
 		}
 	}
 
+	// Calculate voice overage
 	if plan.VoiceAllowance != nil && usage.VoiceUsed > plan.VoiceAllowance.Minutes {
 		voiceOverage := usage.VoiceUsed - plan.VoiceAllowance.Minutes
 		if plan.OverageRates != nil {
@@ -181,6 +184,7 @@ func (rpci *RatePlanCurrencyIntegrator) calculateOverageCost(ctx context.Context
 		}
 	}
 
+	// Calculate SMS overage
 	if plan.SMSAllowance != nil && usage.SMSUsed > plan.SMSAllowance.Messages {
 		smsOverage := usage.SMSUsed - plan.SMSAllowance.Messages
 		if plan.OverageRates != nil {

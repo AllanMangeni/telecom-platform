@@ -154,18 +154,3 @@ func (m *SMDPManager) updateCarrierMetrics(carrierID string, success bool, respo
 
 	carrier.Metrics.RequestRate = float64(carrier.Metrics.TotalRequests) / time.Since(time.Now().Add(-time.Minute)).Seconds()
 }
-
-func (m *SMDPManager) getHighestPriorityCarrier(carriers []*Carrier) *Carrier {
-	if len(carriers) == 0 {
-		return nil
-	}
-
-	highestPriority := carriers[0]
-	for _, carrier := range carriers {
-		if carrier.Priority > highestPriority.Priority {
-			highestPriority = carrier
-		}
-	}
-
-	return highestPriority
-}
