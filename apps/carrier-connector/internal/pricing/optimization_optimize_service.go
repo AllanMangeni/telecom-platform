@@ -110,17 +110,17 @@ func (s *PricingOptimizationService) optimizeForProfitMargin(ratePlan *RatePlan,
 	return math.Round(optimalPrice*100) / 100
 }
 
-func (s *PricingOptimizationService) optimizeForCompetitive(ratePlan *RatePlan, data []HistoricalDataPoint) float64 {
+func (s *PricingOptimizationService) optimizeForCompetitive(_ *RatePlan, _ []HistoricalDataPoint) float64 {
 	competitorPrices := []float64{9.99, 12.99, 14.99, 16.99}
 	medianPrice := competitorPrices[len(competitorPrices)/2]
 	return medianPrice * 0.95
 }
 
-func (s *PricingOptimizationService) optimizeForChurnReduction(ratePlan *RatePlan, data []HistoricalDataPoint) float64 {
+func (s *PricingOptimizationService) optimizeForChurnReduction(ratePlan *RatePlan, _ []HistoricalDataPoint) float64 {
 	return ratePlan.BasePrice * 0.9
 }
 
-func (s *PricingOptimizationService) predictOutcomes(ratePlan *RatePlan, price float64, data []HistoricalDataPoint) (float64, int64) {
+func (s *PricingOptimizationService) predictOutcomes(_ *RatePlan, price float64, data []HistoricalDataPoint) (float64, int64) {
 	demand := s.predictDemand(price, data)
 	return price * float64(demand), demand
 }

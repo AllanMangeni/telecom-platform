@@ -459,7 +459,7 @@ func (s *PredictiveMaintenanceService) predictFailureTime(asset *Asset, model *M
 }
 
 // generateMaintenanceRecommendations generates maintenance recommendations
-func (s *PredictiveMaintenanceService) generateMaintenanceRecommendations(asset *Asset, model *MaintenanceModel) []string {
+func (s *PredictiveMaintenanceService) generateMaintenanceRecommendations(asset *Asset, _ *MaintenanceModel) []string {
 	recommendations := make([]string, 0)
 
 	switch asset.Type {

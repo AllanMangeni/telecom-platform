@@ -22,6 +22,6 @@ func (s *PricingOptimizationService) getPeriodStart(period string) time.Time {
 }
 
 // getPeriodEnd returns end date for period
-func (s *PricingOptimizationService) getPeriodEnd(period string) time.Time {
+func (s *PricingOptimizationService) getPeriodEnd(_ string) time.Time {
 	return time.Now()
 }

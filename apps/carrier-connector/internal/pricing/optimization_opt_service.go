@@ -39,7 +39,7 @@ func (s *PricingOptimizationService) calculateElasticity(_ context.Context, rate
 }
 
 // calculateCompetitiveIndex calculates competitive positioning index using market analysis
-func (s *PricingOptimizationService) calculateCompetitiveIndex(ctx context.Context, period string) float64 {
+func (s *PricingOptimizationService) calculateCompetitiveIndex(_ context.Context, _ string) float64 {
 	// Advanced competitive index calculation based on multiple factors
 	// In production, this would analyze real competitor data
 
@@ -71,7 +71,7 @@ func (s *PricingOptimizationService) calculateCompetitiveIndex(ctx context.Conte
 }
 
 // calculateOptimizationROI calculates ROI from optimizations using financial modeling
-func (s *PricingOptimizationService) calculateOptimizationROI(ctx context.Context, period string) float64 {
+func (s *PricingOptimizationService) calculateOptimizationROI(_ context.Context, period string) float64 {
 	// Advanced ROI calculation based on optimization effectiveness
 	// In production, this would track actual optimization results
 
@@ -115,7 +115,7 @@ func (s *PricingOptimizationService) calculateOptimizationROI(ctx context.Contex
 }
 
 // generateAnalysis generates reasoning, risks, and recommendations
-func (s *PricingOptimizationService) generateAnalysis(ratePlan *RatePlan, optimalPrice float64, strategy OptimizationStrategy, data []HistoricalDataPoint) ([]string, []string, []string) {
+func (s *PricingOptimizationService) generateAnalysis(ratePlan *RatePlan, optimalPrice float64, strategy OptimizationStrategy, _ []HistoricalDataPoint) ([]string, []string, []string) {
 	reasoning := make([]string, 0)
 	risks := make([]string, 0)
 	recommendations := make([]string, 0)
