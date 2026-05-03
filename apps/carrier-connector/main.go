@@ -111,7 +111,7 @@ func main() {
 	// Create repository for MVNO operations
 	repo := repository.NewGormRepository(db, logger)
 
-	setupRoutes(router, client, profileRepo, webhookClient, messageQueue, repo, logger)
+	setupRoutes(router, client, profileRepo, webhookClient, messageQueue, repo, db, logger)
 
 	handler.Logger.Info().Str("port", port).Msg("Carrier Connector API server starting")
 	if err := router.Run(":" + port); err != nil {
