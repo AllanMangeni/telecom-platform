@@ -135,7 +135,7 @@ func (s *Service) getUsageMetrics(ctx context.Context, filter *AnalyticsFilter) 
 	return metrics, nil
 }
 
-func (s *Service) getCarrierMetrics(ctx context.Context, filter *AnalyticsFilter) (CarrierMetrics, error) {
+func (s *Service) getCarrierMetrics(ctx context.Context, _ *AnalyticsFilter) (CarrierMetrics, error) {
 	metrics := CarrierMetrics{
 		ByCarrier:        make(map[string]CarrierStat),
 		FailuresByReason: make(map[string]int64),
@@ -151,14 +151,14 @@ func (s *Service) getCarrierMetrics(ctx context.Context, filter *AnalyticsFilter
 	return metrics, nil
 }
 
-func (s *Service) getGeoMetrics(ctx context.Context, filter *AnalyticsFilter) (GeoMetrics, error) {
+func (s *Service) getGeoMetrics(_ context.Context, _ *AnalyticsFilter) (GeoMetrics, error) {
 	metrics := GeoMetrics{
 		RevenueByContinent: make(map[string]float64),
 	}
 	return metrics, nil
 }
 
-func (s *Service) getPerformanceStats(ctx context.Context, filter *AnalyticsFilter) (PerformanceStats, error) {
+func (s *Service) getPerformanceStats(_ context.Context, _ *AnalyticsFilter) (PerformanceStats, error) {
 	return PerformanceStats{
 		Uptime:    99.9,
 		ErrorRate: 0.1,
