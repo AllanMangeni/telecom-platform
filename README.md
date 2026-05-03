@@ -213,6 +213,15 @@ telecom-platform/
 |   |-- charging-engine/     # Rust: OCS Real-time Credit Control
 |   |-- packet-gateway/      # Rust: eBPF UPF Data Plane
 |   |-- web-dashboard/       # TypeScript: Next.js Frontend
+|-- sdk/
+|   |-- go/                  # Go SDK
+|   |-- python/              # Python SDK
+|   |-- typescript/          # TypeScript SDK
+|   |-- kotlin/              # Kotlin SDK
+|   |-- ruby/                # Ruby SDK
+|   |-- swift/               # Swift SDK
+|   |-- rust/                # Rust SDK
+|   |-- elixir/              # Elixir SDK
 |-- libs/
 |   |-- shared-ts-sdk/       # TypeScript: Drop-in Widget SDK
 |   |-- proto/               # Shared Protobufs
@@ -223,6 +232,7 @@ telecom-platform/
 |   |-- traefik.yml          # Static configuration
 |   |-- dynamic/             # Dynamic middleware config
 |-- docs/                    # Architecture & API docs
+|   |-- sdk-usage.md         # Multi-language SDK documentation
 |   |-- gateway-quickstart.md # API Gateway guide
 |   |-- api-gateway.md       # Gateway implementation details
 |-- scripts/                 # Automation scripts
@@ -337,6 +347,53 @@ The API Gateway provides:
 - **Monitoring**: Real-time metrics dashboard
 
 For detailed setup, see [Gateway Quickstart Guide](./docs/gateway-quickstart.md)
+
+## API Endpoints
+
+### Analytics API
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/v1/analytics/churn/predict` | Predict churn for a profile |
+| GET | `/api/v1/analytics/churn/metrics` | Get churn metrics |
+| GET | `/api/v1/analytics/churn/at-risk` | Get at-risk customers |
+| GET | `/api/v1/analytics/market/metrics` | Get market metrics |
+| GET | `/api/v1/analytics/market/competitors` | Get competitor analysis |
+| GET | `/api/v1/analytics/market/opportunities` | Get market opportunities |
+| GET | `/api/v1/analytics/maintenance/metrics` | Get maintenance metrics |
+| GET | `/api/v1/analytics/maintenance/assets` | Get assets health |
+| GET | `/api/v1/analytics/maintenance/alerts` | Get maintenance alerts |
+| POST | `/api/v1/analytics/maintenance/predict/:asset_id` | Predict asset failure |
+| GET | `/api/v1/analytics/pricing/metrics` | Get pricing metrics |
+| POST | `/api/v1/analytics/pricing/optimize` | Optimize pricing |
+| GET | `/api/v1/analytics/pricing/elasticity` | Get price elasticity |
+
+### Security API
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/v1/security/fraud/analyze` | Analyze transaction for fraud |
+| POST | `/api/v1/security/fraud/alerts` | Get fraud alerts |
+| PUT | `/api/v1/security/fraud/alerts/:id` | Update alert status |
+| GET | `/api/v1/security/fraud/metrics` | Get fraud metrics |
+| GET | `/api/v1/security/fraud/patterns` | Get fraud patterns |
+| POST | `/api/v1/security/simswap/verify` | Verify SIM swap |
+| GET | `/api/v1/security/simswap/history/:profile_id` | Get SIM swap history |
+
+### Currency & Billing API
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/v1/currency/convert` | Convert currency |
+| GET | `/api/v1/currency/exchange/:from/:to` | Get exchange rate |
+| GET | `/api/v1/currency/exchange/:from/:to/history` | Get exchange rate history |
+| GET | `/api/v1/currency/currencies` | List supported currencies |
+| POST | `/api/v1/currency/exchange/refresh` | Refresh exchange rates |
+| POST | `/api/v1/currency/billing` | Process billing |
+| GET | `/api/v1/currency/billing/history/:profile_id` | Get billing history |
+| GET | `/api/v1/currency/billing/summary/:profile_id` | Get billing summary |
+| POST | `/api/v1/currency/billing/refund/:transaction_id` | Process refund |
+| GET | `/api/v1/currency/billing/analytics` | Get billing analytics |
 
 ## Environment Variables
 
