@@ -184,7 +184,7 @@ func (sa *SelectionAlgorithm) calculateCapabilityScore(carrier *Carrier, profile
 }
 
 // generateReason creates a human-readable selection reason
-func (sa *SelectionAlgorithm) generateReason(score *CarrierScore, criteria *SelectionCriteria) string {
+func (sa *SelectionAlgorithm) generateReason(score *CarrierScore, _ *SelectionCriteria) string {
 	reasons := []string{}
 
 	if score.PerformanceScore > 80 {

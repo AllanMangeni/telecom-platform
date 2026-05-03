@@ -38,11 +38,9 @@ func TestMachineLearningModel(t *testing.T) {
 
 		// Check that weights have been optimized
 		optimizedWeights := mlModel.GetOptimizedWeights()
-		originalWeights := WeightVector{Performance: 0.3, Reliability: 0.3, Cost: 0.2, Region: 0.1, Capability: 0.1}
 
-		// Weights should have changed from original
-		if optimizedWeights.Performance == originalWeights.Performance &&
-			optimizedWeights.Reliability == originalWeights.Reliability {
+		// Weights should have changed from original defaults (0.3, 0.3, 0.2, 0.1, 0.1)
+		if optimizedWeights.Performance == 0.3 && optimizedWeights.Reliability == 0.3 {
 			t.Error("Expected weights to change after learning")
 		}
 
