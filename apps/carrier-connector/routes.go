@@ -35,6 +35,27 @@ func setupRoutes(router *gin.Engine, client *es2.ES2Client, repo repository.Prof
 		carrier.GET("/info", handler.GetCarrierInfoHandler(client))
 		carrier.GET("/connectivity", handler.CheckConnectivityHandler(client))
 	}
+
+	// MVNO routes
+	mvno := api.Group("/mvno")
+	{
+		// Note: These will be implemented with proper service initialization
+		mvno.POST("/onboarding", func(c *gin.Context) {
+			c.JSON(http.StatusNotImplemented, gin.H{"error": "MVNO onboarding endpoint - to be implemented"})
+		})
+		mvno.GET("", func(c *gin.Context) {
+			c.JSON(http.StatusNotImplemented, gin.H{"error": "MVNO list endpoint - to be implemented"})
+		})
+		mvno.GET("/:id", func(c *gin.Context) {
+			c.JSON(http.StatusNotImplemented, gin.H{"error": "MVNO get endpoint - to be implemented"})
+		})
+		mvno.PUT("/:id/status", func(c *gin.Context) {
+			c.JSON(http.StatusNotImplemented, gin.H{"error": "MVNO status update endpoint - to be implemented"})
+		})
+		mvno.GET("/stats", func(c *gin.Context) {
+			c.JSON(http.StatusNotImplemented, gin.H{"error": "MVNO stats endpoint - to be implemented"})
+		})
+	}
 }
 
 // healthHandler returns a simple liveness response.
